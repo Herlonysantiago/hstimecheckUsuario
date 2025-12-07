@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="14dp"
+    app:cardCornerRadius="18dp"
+    app:cardElevation="4dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="@color/md_theme_outlineVariant">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- DESCRIÇÃO DO PRODUTO -->
+        <TextView
+            android:id="@+id/txtDescricao"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Descrição do Produto"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            />
+
+        <!-- CÓDIGO -->
+        <TextView
+            android:id="@+id/txtCodigo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Código: 000000"
+            android:paddingTop="4dp"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            />
+
+        <!-- PREÇOS -->
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="10dp"
+            android:gravity="space-between">
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/txtPrecoAtual"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Preço atual: R$ 10,00"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"/>
+
+                <TextView
+                    android:id="@+id/txtPrecoSugerido"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Sugerido: R$ 8,50"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"/>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/txtDiferenca"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="-15%"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:textColor="@android:color/holo_red_dark"/>
+        </LinearLayout>
+
+        <!-- AÇÕES -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:paddingTop="12dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEditar"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:text="Editar"
+                android:layout_marginRight="8dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRejeitar"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:text="Rejeitar"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAprovar"
+                style="@style/Widget.Material3.Button.FilledButton"
+                android:text="Aprovar"
+                android:layout_marginLeft="8dp"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:padding="24dp"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <RadioGroup
+        android:id="@+id/rgOptions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <RadioButton
+            android:id="@+id/rbRemoveList"
+            android:text="Remover desta lista"/>
+
+        <RadioButton
+            android:id="@+id/rbReturnNormal"
+            android:text="Voltar ao estado normal"/>
+
+        <RadioButton
+            android:id="@+id/rbDeletePermanent"
+            android:text="Excluir completamente"/>
+    </RadioGroup>
+
+    <Button
+        android:id="@+id/btnConfirm"
+        android:layout_width="match_parent"
+        android:text="Confirmar"/>
+</LinearLayout>

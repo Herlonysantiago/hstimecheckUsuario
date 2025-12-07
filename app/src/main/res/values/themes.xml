@@ -1,0 +1,22 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Tema do aplicativo -->
+    <style name="Theme.HsTimeCheck" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Cor primária -->
+        <item name="colorPrimary">#3D5AFE</item>
+        <item name="colorPrimaryContainer">#E8EAF6</item>
+
+        <!-- Cor secundária -->
+        <item name="colorSecondary">#00BFA5</item>
+
+        <!-- Cor de fundo -->
+        <item name="android:windowBackground">#F5F5F5</item>
+
+        <!-- Fonte global -->
+
+        <item name="android:fontFamily">@font/poppins</item>
+
+
+    </style>
+
+</resources>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.painel.PainelOperacionalActivity">
+
+    <!-- APP BAR -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/topAppBar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimaryContainer"
+        android:title="HS TimeCheck – Painel Operacional"
+        android:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge"
+        app:navigationIcon="@drawable/ic_menu"
+        app:menu="@menu/menu_painel_operacional"
+        app:layout_scrollFlags="scroll|enterAlways" />
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="?attr/actionBarSize"
+        android:padding="16dp"
+        android:clipToPadding="false"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <!-- AÇÕES RÁPIDAS -->
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingBottom="12dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnScanner"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Scanner"
+                    android:drawableTop="@drawable/ic_scanner"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnImportar"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Importar"
+                    android:drawableTop="@drawable/ic_import"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnExportar"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Exportar"
+                    android:drawableTop="@drawable/ic_export"/>
+            </LinearLayout>
+
+            <!-- TÍTULO DE INDICADORES -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Indicadores do Sistema"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:paddingTop="8dp"
+                android:paddingBottom="4dp"/>
+
+            <!-- GRID DE INDICADORES -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvIndicadores"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                tools:listitem="@layout/item_indicador" />
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

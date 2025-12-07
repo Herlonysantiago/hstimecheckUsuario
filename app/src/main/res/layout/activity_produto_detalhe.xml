@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!-- FOTO -->
+        <ImageView
+            android:id="@+id/imgProduto"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_placeholder"
+            android:background="#DDDDDD"/>
+
+        <!-- TÍTULO -->
+        <TextView
+            android:id="@+id/tvDescricao"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:layout_marginTop="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <!-- CÓDIGO -->
+        <TextView
+            android:id="@+id/tvCodigo"
+            android:textSize="14sp"
+            android:layout_marginTop="4dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <!-- STATUS -->
+        <TextView
+            android:id="@+id/tvStatus"
+            android:textSize="14sp"
+            android:textStyle="italic"
+            android:layout_marginTop="4dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <!-- VALIDADE -->
+        <TextView
+            android:id="@+id/tvValidade"
+            android:textSize="16sp"
+            android:layout_marginTop="16dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <!-- QUANTIDADE -->
+        <TextView
+            android:id="@+id/tvQuantidade"
+            android:textSize="16sp"
+            android:layout_marginTop="4dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <!-- PREÇO -->
+        <TextView
+            android:id="@+id/tvPreco"
+            android:textSize="16sp"
+            android:layout_marginTop="4dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <!-- BOTÕES RÁPIDOS -->
+        <LinearLayout
+            android:layout_marginTop="20dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:weightSum="2"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnIrValidades"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Validades"/>
+
+            <Button
+                android:id="@+id/btnIrHistorico"
+                android:layout_marginStart="8dp"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Histórico"/>
+        </LinearLayout>
+
+        <!-- BOTÃO MENU DE AÇÕES (3 pontinhos) -->
+        <ImageButton
+            android:id="@+id/btnMenu"
+            android:src="@drawable/ic_more_vert"
+            android:background="@null"
+            android:layout_marginTop="20dp"
+            android:layout_gravity="end"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+</ScrollView>
