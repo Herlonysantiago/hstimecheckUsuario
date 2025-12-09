@@ -2,19 +2,19 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- TOP BAR -->
+    <!-- BARRA SUPERIOR -->
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/topAppBar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="?attr/colorPrimaryContainer"
-        app:navigationIcon="@drawable/ic_arrow_back"
         android:title="Aprovação Comercial"
-        android:titleTextColor="?attr/colorOnPrimaryContainer"
-        />
+        app:navigationIcon="@drawable/ic_arrow_back"
+        android:titleTextColor="?attr/colorOnPrimaryContainer"/>
 
     <!-- LISTA DE PRODUTOS -->
     <androidx.recyclerview.widget.RecyclerView
@@ -24,7 +24,5 @@
         android:layout_marginTop="?attr/actionBarSize"
         android:padding="14dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        tools:listitem="@layout/item_aprovacao_comercial"
-        />
-
+        tools:listitem="@layout/item_aprovacao_comercial"/>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

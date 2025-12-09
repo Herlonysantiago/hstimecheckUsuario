@@ -1,22 +1,26 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
 
-    <!-- Tema do aplicativo -->
+    <!-- TEMA PRINCIPAL -->
     <style name="Theme.HsTimeCheck" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Cor primária -->
-        <item name="colorPrimary">#3D5AFE</item>
-        <item name="colorPrimaryContainer">#E8EAF6</item>
+        <item name="colorPrimary">@color/md_theme_light_primary</item>
+        <item name="colorPrimaryContainer">@color/md_theme_light_primaryContainer</item>
+        <item name="colorSecondary">@color/md_theme_light_secondary</item>
+        <item name="colorSecondaryContainer">@color/md_theme_light_secondaryContainer</item>
 
-        <!-- Cor secundária -->
-        <item name="colorSecondary">#00BFA5</item>
-
-        <!-- Cor de fundo -->
-        <item name="android:windowBackground">#F5F5F5</item>
-
-        <!-- Fonte global -->
-
-        <item name="android:fontFamily">@font/poppins</item>
+        <!-- FONTE GLOBAL -->
+        <item name="fontFamily">@font/poppins</item>
+    </style>
 
 
+    <!-- TEMA OFICIAL DA SPLASH -->
+    <style name="Theme.HsTimeCheck.Splash" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Fundo da tela -->
+        <item name="android:windowBackground">@drawable/splash_background</item>
+
+        <!-- Sem título / sem ActionBar -->
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
     </style>
 
 </resources>

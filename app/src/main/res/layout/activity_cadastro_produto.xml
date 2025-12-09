@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Código de Barras -->
+    <EditText
+        android:id="@+id/edtCodigoBarras"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Código de Barras"
+        android:enabled="false" />
+
+    <!-- Código Interno -->
+    <EditText
+        android:id="@+id/edtCodigoInterno"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Código Interno" />
+
+    <!-- Descrição -->
+    <EditText
+        android:id="@+id/edtDescricao"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Descrição" />
+
+    <!-- Quantidade -->
+    <EditText
+        android:id="@+id/edtQuantidade"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Quantidade"
+        android:inputType="number" />
+
+    <!-- Validade -->
+    <EditText
+        android:id="@+id/edtValidade"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Validade"
+        android:focusable="false"
+        android:clickable="true"
+        android:inputType="none" />
+
+    <!-- Preço -->
+    <EditText
+        android:id="@+id/edtPreco"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Preço"
+        android:inputType="numberDecimal" />
+
+    <!-- Botão Salvar -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSalvar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Salvar"
+        android:layout_marginTop="20dp"
+        android:icon="@drawable/ic_check"
+        android:iconTint="@android:color/white"/>
+</LinearLayout>
