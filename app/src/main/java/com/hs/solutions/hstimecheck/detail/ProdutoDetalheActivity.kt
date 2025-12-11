@@ -11,7 +11,7 @@ import com.hs.solutions.hstimecheck.models.StatusProduto
 import java.text.SimpleDateFormat
 import java.util.*
 import com.hs.solutions.hstimecheck.core.AppContainer
-import com.hs.solutions.hstimecheck.core.ProductService
+import android.util.Log
 class ProdutoDetalheActivity : AppCompatActivity() {
 
     private var produto: Produto? = null
@@ -31,12 +31,12 @@ class ProdutoDetalheActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_produto_detalhe)
+        val btn = findViewById<Button?>(R.id.btnSalvar)
+        Log.d("TESTE_SALVAR", "BOTÃO SALVAR ENCONTRADO? -> $btn")
 
-        // Busca produto pelo ID recebido
-        val id = intent.getStringExtra("produto_id")
+        // CORREÇÃO AQUI — agora salva na variável da classe
+        val id = intent.getStringExtra("id") ?: return
         produto = productService.getProdutoById(id)
-
-
 
         if (produto == null) {
             Toast.makeText(this, "Erro: Produto não encontrado", Toast.LENGTH_SHORT).show()
@@ -63,17 +63,17 @@ class ProdutoDetalheActivity : AppCompatActivity() {
     }
 
     private fun preencherDados() {
-        produto?.let { p ->
-            tvDescricao.text = p.descricao
-            tvCodigo.text = "Código: ${p.codigoBarras}"
-            tvStatus.text = "Status: ${p.status}"
-            tvValidade.text = "Validade: ${p.validadeAtual ?: "—"}"
-            tvQuantidade.text = "Quantidade: ${p.quantidadeAtual ?: "—"}"
-            tvPreco.text = "Preço: R$ ${p.precoAtual ?: 0.0}"
+        val p = produto ?: return
 
-            val url = "https://images.openfoodfacts.org/images/products/${p.codigoBarras}/front_pt.400.jpg"
-            Glide.with(this).load(url).placeholder(R.drawable.ic_placeholder).into(img)
-        }
+        tvDescricao.text = p.descricao
+        tvCodigo.text = "Código: ${p.codigoBarras}"
+        tvStatus.text = "Status: ${p.status}"
+        tvValidade.text = "Validade: ${p.validadeAtual ?: "—"}"
+        tvQuantidade.text = "Quantidade: ${p.quantidadeAtual ?: "—"}"
+        tvPreco.text = "Preço: R$ ${p.precoAtual ?: 0.0}"
+
+        val url = "https://images.openfoodfacts.org/images/products/${p.codigoBarras}/front_pt.400.jpg"
+        Glide.with(this).load(url).placeholder(R.drawable.ic_placeholder).into(img)
     }
 
     private fun configurarAcoes() {
@@ -105,11 +105,10 @@ class ProdutoDetalheActivity : AppCompatActivity() {
 
         AlertDialog.Builder(this)
             .setTitle("Ações")
-            .setItems(opcoes) { dialog, which ->
+            .setItems(opcoes) { _, which ->
                 when (opcoes[which]) {
                     "Ver Validades" -> Toast.makeText(this, "Abrir validades", Toast.LENGTH_SHORT).show()
                     "Ver Histórico" -> Toast.makeText(this, "Abrir histórico", Toast.LENGTH_SHORT).show()
-
                     "Adicionar novo alerta" ->
                         Toast.makeText(this, "Funcionalidade futura", Toast.LENGTH_SHORT).show()
 
@@ -130,6 +129,8 @@ class ProdutoDetalheActivity : AppCompatActivity() {
 
         Toast.makeText(this, "Status atualizado", Toast.LENGTH_SHORT).show()
         preencherDados()
+
+        // opcional: productService.salvar(p)
     }
 
     private fun adicionarHistorico(evento: String, detalhe: String?) {

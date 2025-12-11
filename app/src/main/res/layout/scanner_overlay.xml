@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- MÁSCARA ESCURA -->
+    <View
+        android:id="@+id/maskView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#66000000"/>
+
+    <!-- JANELA DE ESCANEAMENTO (50% da tela) -->
+    <View
+        android:id="@+id/scanWindow"
+        android:layout_width="300dp"
+        android:layout_height="160dp"
+        android:layout_gravity="center"
+        android:background="@drawable/overlay_border"/>
+
+    <!-- LASER (opcional) -->
+    <View
+        android:id="@+id/laser"
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:layout_marginStart="40dp"
+        android:layout_marginEnd="40dp"
+        android:background="#FF0000"
+        android:layout_gravity="center_horizontal" />
+</FrameLayout>

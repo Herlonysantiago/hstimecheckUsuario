@@ -1,65 +1,244 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:padding="20dp"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:padding="20dp"
+    android:background="#FAFAFA">
 
-    <!-- Código de Barras -->
-    <EditText
-        android:id="@+id/edtCodigoBarras"
+    <LinearLayout
+        android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Código de Barras"
-        android:enabled="false" />
+        android:gravity="center_horizontal">
 
-    <!-- Código Interno -->
-    <EditText
-        android:id="@+id/edtCodigoInterno"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Código Interno" />
+        <!-- FOTO DO PRODUTO -->
+        <FrameLayout
+            android:layout_width="160dp"
+            android:layout_height="160dp"
+            android:layout_marginBottom="20dp">
 
-    <!-- Descrição -->
-    <EditText
-        android:id="@+id/edtDescricao"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Descrição" />
+            <ImageView
+                android:id="@+id/imgProduto"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_image_placeholder_cadastro"
+                android:background="@drawable/bg_edittext"
+                android:padding="4dp"/>
 
-    <!-- Quantidade -->
-    <EditText
-        android:id="@+id/edtQuantidade"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Quantidade"
-        android:inputType="number" />
+            <ImageButton
+                android:id="@+id/btnFoto"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="bottom|end"
+                android:background="@drawable/ic_camera_cadastro"
+                android:padding="10dp"
+                android:src="@drawable/ic_camera_cadastro"
+                android:tint="#FFFFFF"/>
+        </FrameLayout>
 
-    <!-- Validade -->
-    <EditText
-        android:id="@+id/edtValidade"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Validade"
-        android:focusable="false"
-        android:clickable="true"
-        android:inputType="none" />
 
-    <!-- Preço -->
-    <EditText
-        android:id="@+id/edtPreco"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Preço"
-        android:inputType="numberDecimal" />
+        <!-- BOTÕES NOVOS -->
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_marginBottom="20dp">
 
-    <!-- Botão Salvar -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnSalvar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Salvar"
-        android:layout_marginTop="20dp"
-        android:icon="@drawable/ic_check"
-        android:iconTint="@android:color/white"/>
-</LinearLayout>
+            <!-- Scan -->
+            <Button
+                android:id="@+id/btnScan"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Escanear"
+                android:backgroundTint="#1976D2"
+                android:textColor="#FFF"/>
+
+            <Space
+                android:layout_width="12dp"
+                android:layout_height="match_parent"/>
+
+            <!-- Limpar -->
+            <Button
+                android:id="@+id/btnLimpar"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Limpar"
+                android:backgroundTint="#9E9E9E"
+                android:textColor="#FFF"/>
+        </LinearLayout>
+
+
+        <!-- CAMPOS DE TEXTO -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Código de Barras"
+            android:textColor="#000"
+            android:textStyle="bold"/>
+
+        <EditText
+            android:id="@+id/edtCodigoBarras"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Digite o código"
+            android:textColor="#000"
+            android:textColorHint="#666"
+            android:background="@drawable/bg_edittext"
+            android:padding="12dp"
+            android:textSize="16sp"
+            android:layout_marginBottom="14dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Código Interno"
+            android:textColor="#000"
+            android:textStyle="bold"/>
+
+        <EditText
+            android:id="@+id/edtCodigoInterno"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Código interno opcional"
+            android:textColor="#000"
+            android:textColorHint="#666"
+            android:background="@drawable/bg_edittext"
+            android:padding="12dp"
+            android:textSize="16sp"
+            android:layout_marginBottom="14dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Descrição"
+            android:textColor="#000"
+            android:textStyle="bold"/>
+
+        <EditText
+            android:id="@+id/edtDescricao"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Nome do produto"
+            android:textColor="#000"
+            android:textColorHint="#666"
+            android:background="@drawable/bg_edittext"
+            android:padding="12dp"
+            android:textSize="16sp"
+            android:layout_marginBottom="14dp"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Validade"
+            android:textColor="#000"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/edtValidade"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="DD/MM/AAAA"
+            android:textColor="#000"
+            android:textColorHint="#666"
+            android:focusable="false"
+            android:clickable="true"
+            android:background="@drawable/bg_edittext"
+            android:padding="12dp"
+            android:textSize="16sp"
+            android:layout_marginBottom="14dp" />
+
+        <!-- QUANTIDADE CAIXA / UND -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Quantidade Atual"
+            android:textColor="#000"
+            android:textStyle="bold"/>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="14dp">
+
+            <EditText
+                android:id="@+id/edtCaixa"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:hint="Caixa"
+                android:inputType="number"
+                android:textColor="#000"
+                android:textColorHint="#666"
+                android:background="@drawable/bg_edittext"
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:layout_marginEnd="8dp"/>
+
+            <EditText
+                android:id="@+id/edtUnidade"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:hint="Unidade"
+                android:inputType="number"
+                android:textColor="#000"
+                android:textColorHint="#666"
+                android:background="@drawable/bg_edittext"
+                android:padding="12dp"
+                android:textSize="16sp"/>
+        </LinearLayout>
+
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Preço Atual"
+            android:textColor="#000"
+            android:textStyle="bold"/>
+
+        <EditText
+            android:id="@+id/edtPreco"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Preço do produto (R$)"
+            android:inputType="numberDecimal"
+            android:textColor="#000"
+            android:textColorHint="#666"
+            android:background="@drawable/bg_edittext"
+            android:padding="12dp"
+            android:textSize="16sp"
+            android:layout_marginBottom="20dp"/>
+
+
+        <!-- BOTÃO SALVAR -->
+        <Button
+            android:id="@+id/btnSalvar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Salvar Produto"
+            android:textSize="18sp"
+            android:padding="12dp"
+            android:backgroundTint="#1976D2"
+            android:textColor="#FFF"
+            android:layout_marginTop="10dp"/>
+
+
+        <!-- BOTÃO EXCLUIR (OPCIONAL) -->
+        <Button
+            android:id="@+id/btnExcluir"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Excluir Produto"
+            android:textSize="16sp"
+            android:padding="12dp"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="#D32F2F"
+            android:textColor="#FFF"
+            android:visibility="gone"/>
+
+    </LinearLayout>
+</ScrollView>

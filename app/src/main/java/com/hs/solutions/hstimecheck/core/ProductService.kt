@@ -1,92 +1,41 @@
 package com.hs.solutions.hstimecheck.core
-
+import android.util.Log
 import com.hs.solutions.hstimecheck.models.Produto
 import com.hs.solutions.hstimecheck.models.StatusProduto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.asStateFlow
 
-class ProductService(
-    private val repository: ProductRepository
-) {
+class ProductService(private val repo: ProductRepository) {
 
     private val _produtos = MutableStateFlow<List<Produto>>(emptyList())
-    val produtos: StateFlow<List<Produto>> = _produtos
+    val produtos: StateFlow<List<Produto>> = _produtos.asStateFlow()
 
-    // -------------------------------------------------------------
-    // Carrega dados do repositório e aplica regras sanitárias
-    // -------------------------------------------------------------
     suspend fun carregar() {
-        val lista = repository.carregar()
-        val ajustada = lista.map { aplicarRegras(it) }
-        _produtos.value = ajustada
+        _produtos.value = repo.carregar()
     }
 
-    // -------------------------------------------------------------
-    // Busca um produto pelo ID
-    // -------------------------------------------------------------
-    fun getProdutoById(id: String?): Produto? {
-        if (id == null) return null
-        return _produtos.value.find { it.id == id }
-    }
-
-    // -------------------------------------------------------------
-    // Adiciona ou atualiza produto
-    // -------------------------------------------------------------
     suspend fun inserirOuAtualizar(produto: Produto) {
-        val listaAtual = _produtos.value.toMutableList()
+        Log.e("SERVICE", "Inserindo/atualizando produto: ${produto.id}")
 
-        val idx = listaAtual.indexOfFirst { it.id == produto.id }
+        repo.salvar(produto)
+        Log.e("SERVICE", "Inserindo/atualizando produto: ${produto.id}")
 
-        if (idx >= 0) {
-            listaAtual[idx] = aplicarRegras(produto)
-        } else {
-            listaAtual.add(aplicarRegras(produto))
-        }
-
-        repository.salvar(produto)
-        _produtos.value = listaAtual
+        carregar()
     }
 
-    // -------------------------------------------------------------
-    // Muda o status manualmente (fluxos comerciais)
-    // -------------------------------------------------------------
-    suspend fun mudarStatus(produto: Produto, novoStatus: StatusProduto) {
-        produto.status = novoStatus
-
-        // histórico
-        produto.historico.add(
-            HistoryService.registrar(
-                evento = "Status alterado",
-                detalhe = "Novo status: $novoStatus",
-                quantidade = produto.quantidadeAtual,
-                preco = produto.precoAtual
-            )
-        )
-
-        inserirOuAtualizar(produto)
+    suspend fun remover(id: String) {
+        repo.remover(id)
+        carregar()
     }
 
-    // -------------------------------------------------------------
-    // Remove um produto do sistema
-    // -------------------------------------------------------------
-    suspend fun removerProduto(id: String) {
-        repository.remover(id)
-        _produtos.value = _produtos.value.filterNot { it.id == id }
+    suspend fun mudarStatus(produto: Produto, novo: StatusProduto) {
+        val atualizado = produto.copy(status = novo)
+        repo.salvar(atualizado)
+        carregar()
     }
 
-    // -------------------------------------------------------------
-    // Aplica status de validade (regras sanitárias)
-    // -------------------------------------------------------------
-    private fun aplicarRegras(produto: Produto): Produto {
-        val statusSanitario = StatusRules.aplicarRegraSanitaria(produto)
-
-        // STATUS SANITÁRIO SOBRESCREVE somente quando vencendo/vencido
-        if (statusSanitario == StatusProduto.VENCENDO) {
-            produto.status = StatusProduto.VENCENDO
-        }
-
-        return produto
+    fun getProdutoById(id: String): Produto? {
+        return _produtos.value.find { it.id == id }
     }
 }

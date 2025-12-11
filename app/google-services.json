@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "375759677784",
+    "project_id": "hs-timecheck",
+    "storage_bucket": "hs-timecheck.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:375759677784:android:9edf133cd7bcd1de549d2d",
+        "android_client_info": {
+          "package_name": "com.hs.solutions.hstimecheck"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOV1icC0P4tlddQgIFAPBS420P-3Dvn98"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
