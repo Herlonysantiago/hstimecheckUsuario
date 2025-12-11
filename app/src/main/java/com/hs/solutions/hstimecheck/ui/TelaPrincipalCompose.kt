@@ -1,16 +1,18 @@
 package com.hs.solutions.hstimecheck.ui
 
+import androidx.compose.foundation.clickable
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -26,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -72,7 +73,7 @@ class TelaPrincipalActivity : ComponentActivity() {
 }
 
 /* ---------------------------------------------------------------------- */
-/* COMPONENTES TOP BAR                                                    */
+/* TOP BARS                                                               */
 /* ---------------------------------------------------------------------- */
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -149,7 +150,6 @@ fun corPorDiasB(dias: Long?): Color {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardB(produtos: List<Produto>) {
-
     val total = produtos.size
     val vencendo = produtos.count {
         val d = diasAteValidadeFromStringB(it.validadeAtual)
@@ -159,12 +159,10 @@ fun DashboardB(produtos: List<Produto>) {
     val trabalhando = produtos.count { it.status == StatusProduto.TRABALHANDO_PRECO }
 
     Column(Modifier.fillMaxWidth().padding(16.dp)) {
-
         Text("Dashboard", fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(12.dp))
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-
             Card(
                 modifier = Modifier.weight(1f).padding(end = 8.dp),
                 colors = CardDefaults.cardColors(Color(0xFFE3F2FD))
@@ -189,7 +187,6 @@ fun DashboardB(produtos: List<Produto>) {
         Spacer(Modifier.height(12.dp))
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-
             Card(
                 modifier = Modifier.weight(1f).padding(end = 8.dp),
                 colors = CardDefaults.cardColors(Color(0xFFE8F5E9))
@@ -227,17 +224,9 @@ fun abrirProdutoB(context: android.content.Context, id: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun abrirMenuOpcoesB(context: android.content.Context, produto: Produto, onClose: () -> Unit) {
-
     ModalBottomSheet(onDismissRequest = onClose) {
-
         Column(Modifier.fillMaxWidth().padding(20.dp)) {
-
-            Text(
-                text = "Ações – ${produto.descricao}",
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
-            )
-
+            Text("Ações – ${produto.descricao}", fontWeight = FontWeight.Bold, fontSize = 20.sp)
             Spacer(Modifier.height(16.dp))
 
             @Composable
@@ -278,6 +267,11 @@ fun abrirMenuOpcoesB(context: android.content.Context, produto: Produto, onClose
     }
 }
 
+/* ---------------------------------------------------------------------- */
+/* CARD DO PRODUTO — CLIQUES CORRETOS                                     */
+/* ---------------------------------------------------------------------- */
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProdutoCardB(
     produto: Produto,
@@ -293,28 +287,32 @@ fun ProdutoCardB(
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth()
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { onClick() },
-                    onLongPress = { onLongClick() },
-                    onDoubleTap = { onDoubleClick() }
-                )
-            },
+            .combinedClickable(
+                onClick = {
+                    Log.e("CARD_CLICK", "onClick produto=${produto.id}")
+                    onClick()
+                },
+                onLongClick = {
+                    Log.e("CARD_CLICK", "onLongClick produto=${produto.id}")
+                    onLongClick()
+                },
+                onDoubleClick = {
+                    Log.e("CARD_CLICK", "onDoubleClick produto=${produto.id}")
+                    onDoubleClick()
+                }
+            ),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(3.dp)
     ) {
-
         Row(Modifier.fillMaxWidth()) {
-
             Box(
                 Modifier
                     .width(8.dp)
                     .fillMaxHeight()
-                    .background(corReforco)
+                    .background(corPorDiasB(dias))
             )
 
             Column(Modifier.padding(12.dp).weight(1f)) {
-
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(produto.descricao, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
                     Spacer(Modifier.weight(1f))
@@ -322,7 +320,6 @@ fun ProdutoCardB(
                         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF2196F3))
                     }
                 }
-
                 Text("Código: ${produto.codigoBarras}")
                 Text("Qtd: ${produto.quantidadeAtual ?: 0}")
                 Text("Validade: ${produto.validadeAtual ?: "—"}")
@@ -335,6 +332,10 @@ fun ProdutoCardB(
                     StatusProduto.NORMAL -> {}
                 }
             }
+
+            IconButton(onClick = { /* Ações do botão lateral */ }) {
+                Icon(Icons.Filled.MoreVert, contentDescription = "Mais")
+            }
         }
     }
 }
@@ -345,36 +346,22 @@ fun ProdutoCardB(
 
 @Composable
 fun EmptyStateB(onAddClick: () -> Unit) {
-
     Column(
         Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        Icon(
-            Icons.Default.Inventory,
-            contentDescription = null,
-            tint = Color(0xFF90A4AE),
-            modifier = Modifier.size(120.dp)
-        )
-
+        Icon(Icons.Default.Inventory, contentDescription = null, tint = Color(0xFF90A4AE), modifier = Modifier.size(120.dp))
         Spacer(Modifier.height(16.dp))
-
         Text("Nenhum produto cadastrado", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-
         Spacer(Modifier.height(8.dp))
-
         Text("Use o scanner para começar o cadastro.", color = Color.Gray)
-
         Spacer(Modifier.height(24.dp))
-
         Button(
             onClick = onAddClick,
             modifier = Modifier.fillMaxWidth(0.7f),
             colors = ButtonDefaults.buttonColors(Color(0xFF1976D2))
         ) {
-
             Icon(Icons.Default.CameraAlt, contentDescription = null)
             Spacer(Modifier.width(8.dp))
             Text("Adicionar Produto")
@@ -383,7 +370,7 @@ fun EmptyStateB(onAddClick: () -> Unit) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* TELA PRINCIPAL (ÚNICA E CORRETA)                                       */
+/* TELA PRINCIPAL                                                         */
 /* ---------------------------------------------------------------------- */
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -403,13 +390,12 @@ fun TelaPrincipalB(productService: ProductService) {
     val produtos by service.produtos.collectAsState()
 
     val launcherCadastro = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            scope.launch { service.carregar() }
-        }
+        if (result.resultCode == Activity.RESULT_OK) scope.launch { service.carregar() }
     }
 
     val launcherScanner = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
+
             val codigo = result.data?.getStringExtra("codigo_barras") ?: return@rememberLauncherForActivityResult
             val descricao = result.data?.getStringExtra("descricao") ?: ""
             val interno = result.data?.getStringExtra("codigo_interno") ?: ""
@@ -424,9 +410,7 @@ fun TelaPrincipalB(productService: ProductService) {
         }
     }
 
-    LaunchedEffect(Unit) {
-        service.carregar()
-    }
+    LaunchedEffect(Unit) { service.carregar() }
 
     val produtosFiltrados = produtos.filter {
         query.isBlank() ||
@@ -450,7 +434,7 @@ fun TelaPrincipalB(productService: ProductService) {
                         selectionMode = false
                         selectedIds.clear()
                     },
-                    onSendApproval = { /* ação futura */ }
+                    onSendApproval = {}
                 )
             }
         },
@@ -486,7 +470,6 @@ fun TelaPrincipalB(productService: ProductService) {
             }
 
             if (isGrid) {
-
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(250.dp),
                     modifier = Modifier.fillMaxSize()
@@ -500,11 +483,8 @@ fun TelaPrincipalB(productService: ProductService) {
                             isSelected = selectedIds.contains(produto.id),
                             onClick = {
                                 if (selectionMode) {
-                                    if (selectedIds.contains(produto.id)) {
-                                        selectedIds.remove(produto.id)
-                                    } else {
-                                        selectedIds.add(produto.id)
-                                    }
+                                    if (selectedIds.contains(produto.id)) selectedIds.remove(produto.id)
+                                    else selectedIds.add(produto.id)
                                 } else {
                                     abrirProdutoB(context, produto.id)
                                 }
@@ -516,9 +496,7 @@ fun TelaPrincipalB(productService: ProductService) {
                             onDoubleClick = { abrirMenu = true }
                         )
 
-                        if (abrirMenu) {
-                            abrirMenuOpcoesB(context, produto) { abrirMenu = false }
-                        }
+                        if (abrirMenu) abrirMenuOpcoesB(context, produto) { abrirMenu = false }
                     }
                 }
 
@@ -534,11 +512,8 @@ fun TelaPrincipalB(productService: ProductService) {
                             isSelected = selectedIds.contains(produto.id),
                             onClick = {
                                 if (selectionMode) {
-                                    if (selectedIds.contains(produto.id)) {
-                                        selectedIds.remove(produto.id)
-                                    } else {
-                                        selectedIds.add(produto.id)
-                                    }
+                                    if (selectedIds.contains(produto.id)) selectedIds.remove(produto.id)
+                                    else selectedIds.add(produto.id)
                                 } else {
                                     abrirProdutoB(context, produto.id)
                                 }
@@ -550,9 +525,7 @@ fun TelaPrincipalB(productService: ProductService) {
                             onDoubleClick = { abrirMenu = true }
                         )
 
-                        if (abrirMenu) {
-                            abrirMenuOpcoesB(context, produto) { abrirMenu = false }
-                        }
+                        if (abrirMenu) abrirMenuOpcoesB(context, produto) { abrirMenu = false }
                     }
                 }
             }
