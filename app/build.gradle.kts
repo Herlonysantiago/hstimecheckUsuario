@@ -63,6 +63,7 @@ dependencies {
     // NAVIGATION
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.6")
     implementation("androidx.navigation:navigation-ui-ktx:2.7.6")
+    implementation("io.coil-kt:coil-compose:2.4.0")
 
     // COMPOSE (BOM)
     implementation(platform("androidx.compose:compose-bom:2023.10.01"))
@@ -74,7 +75,7 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     implementation("androidx.activity:activity-compose:1.8.2")
-
+    implementation("io.coil-kt:coil-compose:2.4.0")
     // CAMERA X
     implementation("androidx.camera:camera-core:1.3.1")
     implementation("androidx.camera:camera-camera2:1.3.1")

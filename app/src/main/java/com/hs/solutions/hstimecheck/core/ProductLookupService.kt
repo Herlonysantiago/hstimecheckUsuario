@@ -1,5 +1,8 @@
 package com.hs.solutions.hstimecheck.core
 
+import java.net.URL
+import org.json.JSONObject
+
 import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -19,6 +22,13 @@ class ProductLookupService(private val context: Context) {
             cache = loadJsonInternal()
             carregado = true
         }
+    }
+    fun buscarFoto(codigo: String): String? {
+        val url = "https://world.openfoodfacts.org/api/v0/product/$codigo.json"
+        val json = URL(url).readText()
+        val obj = JSONObject(json)
+        val product = obj.optJSONObject("product") ?: return null
+        return product.optString("image_front_url", null)
     }
 
     private suspend fun loadJsonInternal(): List<ProdutoJsonEntrada> =

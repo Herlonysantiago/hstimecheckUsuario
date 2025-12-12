@@ -150,20 +150,14 @@
             android:textSize="16sp"
             android:layout_marginBottom="14dp" />
 
-        <!-- QUANTIDADE CAIXA / UND -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Quantidade Atual"
-            android:textColor="#000"
-            android:textStyle="bold"/>
-
+        <!-- QUANTIDADE CAIXA / UND / QNT POR CX -->
         <LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="14dp">
 
+            <!-- CX -->
             <EditText
                 android:id="@+id/edtCaixa"
                 android:layout_width="0dp"
@@ -178,12 +172,28 @@
                 android:textSize="16sp"
                 android:layout_marginEnd="8dp"/>
 
+            <!-- UND -->
             <EditText
                 android:id="@+id/edtUnidade"
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:hint="Unidade"
+                android:inputType="number"
+                android:textColor="#000"
+                android:textColorHint="#666"
+                android:background="@drawable/bg_edittext"
+                android:padding="12dp"
+                android:textSize="16sp"
+                android:layout_marginEnd="8dp"/>
+
+            <!-- QNT/CX (NOVO CAMPO) -->
+            <EditText
+                android:id="@+id/edtQtdPorCaixa"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:hint="QNT/CX"
                 android:inputType="number"
                 android:textColor="#000"
                 android:textColorHint="#666"

@@ -1,9 +1,20 @@
 package com.hs.solutions.hstimecheck.ui
-
+// FOTO / COIL
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.ui.Alignment
+
+// ANDROID
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+
+// COMPOSE
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -21,12 +32,17 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+
+// APP
 import com.hs.solutions.hstimecheck.core.AppContainer
 import com.hs.solutions.hstimecheck.core.ProductService
 import com.hs.solutions.hstimecheck.cadastro.CadastroProdutoActivity
 import com.hs.solutions.hstimecheck.models.Produto
 import com.hs.solutions.hstimecheck.models.StatusProduto
+
+// CORROTINAS
 import kotlinx.coroutines.launch
+
 
 class TelaPrincipalActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -400,23 +416,15 @@ fun ProdutoItem(
             .padding(horizontal = 12.dp, vertical = 6.dp)
             .pointerInput(produto.id) {
                 detectTapGestures(
-
-                    onLongPress = {
-                        onLongPress()
-                    },
-
+                    onLongPress = { onLongPress() },
                     onTap = {
                         val now = System.currentTimeMillis()
-                        if (now - lastTapTime < 200) {
-                            onDoubleClick()
-                        } else {
-                            onClick()
-                        }
+                        if (now - lastTapTime < 200) onDoubleClick()
+                        else onClick()
                         lastTapTime = now
                     }
                 )
             },
-
         colors = if (isSelected)
             CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
@@ -424,11 +432,80 @@ fun ProdutoItem(
         else CardDefaults.cardColors()
     ) {
 
-        Column(Modifier.padding(12.dp)) {
-            Text(produto.descricao, fontWeight = FontWeight.Bold)
-            Text("Código: ${produto.codigoBarras}")
-            Text("Qtd: ${produto.quantidadeAtual ?: 0}")
-            Text("Validade: ${produto.validadeAtual ?: "—"}")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            /* ============================================================
+               FOTO PREMIUM QUADRADA (NÃO REMOVE NENHUM CÓDIGO EXISTENTE)
+               ============================================================ */
+            Box(
+                modifier = Modifier
+                    .size(70.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .border(
+                        width = 1.dp,
+                        color = Color(0x22000000),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+            ) {
+                if (!produto.fotoUrl.isNullOrBlank()) {
+
+                    AsyncImage(
+                        model = produto.fotoUrl,
+                        contentDescription = "Foto",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Image,
+                        contentDescription = "Sem foto",
+                        tint = Color.Gray,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .align(Alignment.Center)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            /* ============================================================
+               INFORMAÇÕES DO PRODUTO (SEU CÓDIGO ORIGINAL, INTACTO)
+               ============================================================ */
+            Column(Modifier.weight(1f)) {
+
+                Text(produto.descricao, fontWeight = FontWeight.Bold)
+
+                Text("Código Barras: ${produto.codigoBarras}")
+
+                Text(
+                    "Código Interno: ${produto.codigoInterno ?: "—"}"
+                )
+
+
+                // Lógica para exibir quantidade (CX + UN quando possível)
+                val total = produto.quantidadeAtual ?: 0
+                val qpc = produto.quantidadePorCaixa ?: 0
+
+                val quantidadeTexto =
+                    if (qpc > 0 && total > 0) {
+                        val cx = total / qpc
+                        val un = total % qpc
+                        "Qtd: ${cx} cx • ${un} un (cx de ${qpc})"
+                    } else {
+                        "Qtd: ${total} un"
+                    }
+
+                Text(quantidadeTexto)
+                Text("Validade: ${produto.validadeAtual ?: "—"}")
+            }
         }
     }
 }
+

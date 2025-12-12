@@ -9,12 +9,15 @@ data class Produto(
     var descricao: String,
     var validadeAtual: String? = null,
     var quantidadeAtual: Int? = null,
+    var quantidadePorCaixa: Int? = null,
+
     var precoAtual: Double? = null,
     var status: StatusProduto = StatusProduto.NORMAL,
 
     // ➜ Campo adicionado conforme sua escolha (OPÇÃO B)
     var vendaDia: Int = 0,
-
+    var fotoUrl: String? = null,
+    var fotpLocal: String?= "",
     val validades: MutableList<ValidadeItem> = mutableListOf(),
     val historico: MutableList<HistoricoItem> = mutableListOf()
 )
