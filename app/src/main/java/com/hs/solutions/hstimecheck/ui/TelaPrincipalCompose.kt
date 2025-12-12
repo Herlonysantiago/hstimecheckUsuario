@@ -1,5 +1,6 @@
 package com.hs.solutions.hstimecheck.ui
 
+import androidx.compose.ui.Alignment
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
@@ -76,8 +77,7 @@ fun TelaPrincipal(service: ProductService) {
         drawerContent = {
             DrawerMenu(
                 onProdutos = { },
-                onPainel = { },
-                onScanner = { }
+
             )
         }
     ) {
@@ -234,23 +234,155 @@ fun TelaPrincipal(service: ProductService) {
 }
 
 @Composable
-fun DrawerMenu(
-    onProdutos: () -> Unit,
-    onPainel: () -> Unit,
-    onScanner: () -> Unit
-) {
-    ModalDrawerSheet {
+fun SectionHeader(text: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp, horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Divider(modifier = Modifier.weight(1f))
         Text(
-            "Menu",
+            "  $text  ",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Divider(modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+fun DrawerMenu(
+    onDashboard: () -> Unit = {},
+    onProdutos: () -> Unit = {},
+    onImportacao: () -> Unit = {},
+    onExportacao: () -> Unit = {},
+    onAprovacao: () -> Unit = {},
+    onGerencial: () -> Unit = {},
+    onQueimaPreco: () -> Unit = {},
+    onEstoque: () -> Unit = {},
+    onVencimentos: () -> Unit = {},
+    onHistorico: () -> Unit = {},
+    onConfiguracoes: () -> Unit = {},
+    onSobre: () -> Unit = {},
+    onCreditos: () -> Unit = {},
+) {
+
+    ModalDrawerSheet {
+
+        Text(
+            text = "Menu",
             modifier = Modifier.padding(16.dp),
             fontWeight = FontWeight.Bold
         )
 
-        NavigationDrawerItem(label = { Text("Produtos") }, selected = false, onClick = onProdutos)
-        NavigationDrawerItem(label = { Text("Painel Operacional") }, selected = false, onClick = onPainel)
-        NavigationDrawerItem(label = { Text("Scanner") }, selected = false, onClick = onScanner)
+        /* ------------------------------------
+                ÁREA PRINCIPAL
+        ------------------------------------ */
+
+        NavigationDrawerItem(
+            label = { Text("Dashboard") },
+            selected = false,
+            onClick = onDashboard
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Produtos") },
+            selected = false,
+            onClick = onProdutos
+        )
+
+        /* ------------------------------------
+                FLUXOS
+        ------------------------------------ */
+        SectionHeader("FLUXOS")
+
+        NavigationDrawerItem(
+            label = { Text("Aprovação Comercial") },
+            selected = false,
+            onClick = onAprovacao
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Gerencial (Pendências)") },
+            selected = false,
+            onClick = onGerencial
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Trabalhando Preço / Queima de Estoque") },
+            selected = false,
+            onClick = onQueimaPreco
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Verificação de Estoque") },
+            selected = false,
+            onClick = onEstoque
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Produtos Vencendo / Vencidos") },
+            selected = false,
+            onClick = onVencimentos
+        )
+
+
+        /* ------------------------------------
+                DADOS
+        ------------------------------------ */
+        SectionHeader("DADOS")
+
+        NavigationDrawerItem(
+            label = { Text("Importar Planilha") },
+            selected = false,
+            onClick = onImportacao
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Exportar Dados") },
+            selected = false,
+            onClick = onExportacao
+        )
+
+
+        /* ------------------------------------
+                RELATÓRIOS
+        ------------------------------------ */
+        SectionHeader("RELATÓRIOS")
+
+        NavigationDrawerItem(
+            label = { Text("Histórico Geral") },
+            selected = false,
+            onClick = onHistorico
+        )
+
+
+        /* ------------------------------------
+                SISTEMA
+        ------------------------------------ */
+        SectionHeader("SISTEMA")
+
+        NavigationDrawerItem(
+            label = { Text("Configurações") },
+            selected = false,
+            onClick = onConfiguracoes
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Sobre") },
+            selected = false,
+            onClick = onSobre
+        )
+
+        NavigationDrawerItem(
+            label = { Text("Créditos") },
+            selected = false,
+            onClick = onCreditos
+        )
     }
 }
+
 
 @Composable
 fun ProdutoItem(
