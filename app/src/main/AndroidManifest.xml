@@ -23,6 +23,7 @@
 
         <!-- Tela de Detalhe -->
         <activity android:name="com.hs.solutions.hstimecheck.detail.ProdutoDetalheActivity" />
+        <activity android:name="com.hs.solutions.hstimecheck.ui.FullImageActivity" />
 
         <!-- Scanner -->
         <activity

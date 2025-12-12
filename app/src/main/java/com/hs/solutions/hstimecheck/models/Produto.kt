@@ -17,7 +17,7 @@ data class Produto(
     // ➜ Campo adicionado conforme sua escolha (OPÇÃO B)
     var vendaDia: Int = 0,
     var fotoUrl: String? = null,
-    var fotpLocal: String?= "",
+    var fotpLocal: String?= null,
     val validades: MutableList<ValidadeItem> = mutableListOf(),
     val historico: MutableList<HistoricoItem> = mutableListOf()
 )

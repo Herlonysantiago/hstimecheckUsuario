@@ -11,7 +11,10 @@ import com.hs.solutions.hstimecheck.models.StatusProduto
 import java.text.SimpleDateFormat
 import java.util.*
 import com.hs.solutions.hstimecheck.core.AppContainer
+import android.content.Intent
 import android.util.Log
+import com.hs.solutions.hstimecheck.ui.FullImageActivity   // ← IMPORT NECESSÁRIO
+
 class ProdutoDetalheActivity : AppCompatActivity() {
 
     private var produto: Produto? = null
@@ -34,7 +37,6 @@ class ProdutoDetalheActivity : AppCompatActivity() {
         val btn = findViewById<Button?>(R.id.btnSalvar)
         Log.d("TESTE_SALVAR", "BOTÃO SALVAR ENCONTRADO? -> $btn")
 
-        // CORREÇÃO AQUI — agora salva na variável da classe
         val id = intent.getStringExtra("id") ?: return
         produto = productService.getProdutoById(id)
 
@@ -72,8 +74,12 @@ class ProdutoDetalheActivity : AppCompatActivity() {
         tvQuantidade.text = "Quantidade: ${p.quantidadeAtual ?: "—"}"
         tvPreco.text = "Preço: R$ ${p.precoAtual ?: 0.0}"
 
-        val url = "https://images.openfoodfacts.org/images/products/${p.codigoBarras}/front_pt.400.jpg"
-        Glide.with(this).load(url).placeholder(R.drawable.ic_placeholder).into(img)
+        val url = p.fotoUrl ?: "https://images.openfoodfacts.org/images/products/${p.codigoBarras}/front_pt.400.jpg"
+
+        Glide.with(this)
+            .load(url)
+            .placeholder(R.drawable.ic_placeholder)
+            .into(img)
     }
 
     private fun configurarAcoes() {
@@ -89,6 +95,24 @@ class ProdutoDetalheActivity : AppCompatActivity() {
         btnMenu.setOnClickListener {
             abrirMenu()
         }
+
+        // -------------------------------------------------------
+        //    FOTO EM TELA CHEIA  (ADICIONADO SEM REMOVER NADA)
+        // -------------------------------------------------------
+        img.setOnClickListener {
+            val p = produto ?: return@setOnClickListener
+
+            val foto = p.fotoUrl
+            if (foto.isNullOrBlank()) {
+                Toast.makeText(this, "Produto sem foto", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val intent = Intent(this, FullImageActivity::class.java)
+            intent.putExtra("fotoUrl", foto)
+            startActivity(intent)
+        }
+        // -------------------------------------------------------
     }
 
     private fun abrirMenu() {
@@ -107,14 +131,23 @@ class ProdutoDetalheActivity : AppCompatActivity() {
             .setTitle("Ações")
             .setItems(opcoes) { _, which ->
                 when (opcoes[which]) {
-                    "Ver Validades" -> Toast.makeText(this, "Abrir validades", Toast.LENGTH_SHORT).show()
-                    "Ver Histórico" -> Toast.makeText(this, "Abrir histórico", Toast.LENGTH_SHORT).show()
+                    "Ver Validades" ->
+                        Toast.makeText(this, "Abrir validades", Toast.LENGTH_SHORT).show()
+
+                    "Ver Histórico" ->
+                        Toast.makeText(this, "Abrir histórico", Toast.LENGTH_SHORT).show()
+
                     "Adicionar novo alerta" ->
                         Toast.makeText(this, "Funcionalidade futura", Toast.LENGTH_SHORT).show()
 
-                    "Enviar para aprovação" -> alterarStatus(StatusProduto.AGUARDANDO_APROVACAO)
-                    "Enviar para rebaixa" -> alterarStatus(StatusProduto.TRABALHANDO_PRECO)
-                    "Enviar para verificação" -> alterarStatus(StatusProduto.VERIFICACAO_ESTOQUE)
+                    "Enviar para aprovação" ->
+                        alterarStatus(StatusProduto.AGUARDANDO_APROVACAO)
+
+                    "Enviar para rebaixa" ->
+                        alterarStatus(StatusProduto.TRABALHANDO_PRECO)
+
+                    "Enviar para verificação" ->
+                        alterarStatus(StatusProduto.VERIFICACAO_ESTOQUE)
                 }
             }
             .show()
@@ -129,8 +162,6 @@ class ProdutoDetalheActivity : AppCompatActivity() {
 
         Toast.makeText(this, "Status atualizado", Toast.LENGTH_SHORT).show()
         preencherDados()
-
-        // opcional: productService.salvar(p)
     }
 
     private fun adicionarHistorico(evento: String, detalhe: String?) {

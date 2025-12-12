@@ -95,12 +95,37 @@ class CadastroProdutoActivity : AppCompatActivity() {
         edtCaixa.setText("")
         edtQtdPorCaixa.setText("")
 
-        // FOTO
+        // FOTO JÁ EXISTE → exibir
         if (!produto.fotoUrl.isNullOrBlank()) {
-            produtoFotoUrl = produto.fotoUrl
             Glide.with(this).load(produto.fotoUrl).into(imgProduto)
+            return
+        }
+
+        // FOTO NÃO EXISTE → buscar no OpenFoodFacts
+        if (!produto.codigoBarras.isNullOrBlank()) {
+
+            scope.launch {
+                val foto = withContext(Dispatchers.IO) {
+                    lookup.buscarFoto(produto.codigoBarras)
+                }
+
+                if (!foto.isNullOrBlank()) {
+                    produto.fotoUrl = foto
+
+                    // salvar no repositório
+                    withContext(Dispatchers.IO) {
+                        productService.inserirOuAtualizar(produto)
+                    }
+
+                    // exibir
+                    Glide.with(this@CadastroProdutoActivity)
+                        .load(foto)
+                        .into(imgProduto)
+                }
+            }
         }
     }
+
 
 
     private fun setupButtonExcluir() {
