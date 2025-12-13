@@ -46,6 +46,7 @@ import kotlinx.coroutines.launch
 
 import java.text.SimpleDateFormat
 import java.util.*
+import com.hs.solutions.hstimecheck.aprovacao.AprovacaoComercialActivity
 
 class TelaPrincipalActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -266,22 +267,102 @@ fun TelaPrincipal(service: ProductService) {
 
     ModalNavigationDrawer(
         drawerState = drawerState,
-        drawerContent = { DrawerMenu(onProdutos = {}) }
-    ) {
+        drawerContent = {
+            DrawerMenu(
+                onDashboard = {
+                    context.startActivity(
+                        Intent(context, PainelOperacionalActivity::class.java)
+                    )
+                },
+
+                        onAprovacao = {
+                    context.startActivity(
+                        Intent(context, AprovacaoComercialActivity::class.java)
+                    )
+                }
+            )
+        }
+    )
+    {
 
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = { Text("HS TimeCheck") },
-                    navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                if (selectionMode) {
+                    TopAppBar(
+                        title = { Text("${selectedIds.size} selecionado(s)") },
+                        navigationIcon = {
+                            IconButton(onClick = {
+                                selectionMode = false
+                                selectedIds.clear()
+                            }) {
+                                Icon(Icons.Default.Close, contentDescription = "Cancelar seleção")
+                            }
+                        },
+                        actions = {
+
+                            // ENVIAR PARA APROVAÇÃO
+                            IconButton(onClick = {
+                                scope.launch {
+                                    selectedIds.forEach { id ->
+                                        val p = produtos.find { it.id == id }
+                                        if (p != null) {
+                                            service.mudarStatus(p, StatusProduto.AGUARDANDO_APROVACAO)
+                                        }
+                                    }
+                                    selectionMode = false
+                                    selectedIds.clear()
+                                }
+                            }) {
+                                Icon(Icons.Default.ThumbUp, contentDescription = "Aprovação")
+                            }
+
+                            // ENVIAR PARA TRABALHANDO PREÇO
+                            IconButton(onClick = {
+                                scope.launch {
+                                    selectedIds.forEach { id ->
+                                        val p = produtos.find { it.id == id }
+                                        if (p != null) {
+                                            service.mudarStatus(p, StatusProduto.TRABALHANDO_PRECO)
+                                        }
+                                    }
+                                    selectionMode = false
+                                    selectedIds.clear()
+                                }
+                            }) {
+                                Icon(Icons.Default.LocalFireDepartment, contentDescription = "Preço")
+                            }
+
+                            // VERIFICAÇÃO DE ESTOQUE
+                            IconButton(onClick = {
+                                scope.launch {
+                                    selectedIds.forEach { id ->
+                                        val p = produtos.find { it.id == id }
+                                        if (p != null) {
+                                            service.mudarStatus(p, StatusProduto.VERIFICACAO_ESTOQUE)
+                                        }
+                                    }
+                                    selectionMode = false
+                                    selectedIds.clear()
+                                }
+                            }) {
+                                Icon(Icons.Default.Inventory, contentDescription = "Estoque")
+                            }
                         }
-                    }
-                )
+                    )
+                } else {
+                    TopAppBar(
+                        title = { Text("HS TimeCheck") },
+                        navigationIcon = {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            }
+                        }
+                    )
+                }
             },
 
-            floatingActionButton = {
+
+                    floatingActionButton = {
                 FloatingActionButton(
                     onClick = {
                         launcherCadastro.launch(Intent(context, CadastroProdutoActivity::class.java))

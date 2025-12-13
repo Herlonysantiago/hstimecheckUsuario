@@ -23,6 +23,46 @@ class ProductService(private val repo: ProductRepository) {
 
         carregar()
     }
+    suspend fun aprovarComercial(
+        produto: Produto,
+        precoAprovado: Double,
+        observacao: String? = null
+    ) {
+        val atualizado = produto.copy(
+            precoAtual = precoAprovado,
+            status = StatusProduto.NORMAL
+        )
+
+        atualizado.historico.add(
+            HistoryService.registrar(
+                evento = "Aprovação comercial",
+                detalhe = observacao ?: "Preço aprovado: R$ $precoAprovado",
+                preco = precoAprovado
+            )
+        )
+
+        repo.salvar(atualizado)
+        carregar()
+    }
+
+    suspend fun rejeitarComercial(
+        produto: Produto,
+        motivo: String? = null
+    ) {
+        val atualizado = produto.copy(
+            status = StatusProduto.NORMAL
+        )
+
+        atualizado.historico.add(
+            HistoryService.registrar(
+                evento = "Rejeição comercial",
+                detalhe = motivo ?: "Preço não aprovado"
+            )
+        )
+
+        repo.salvar(atualizado)
+        carregar()
+    }
 
     suspend fun remover(id: String) {
         repo.remover(id)

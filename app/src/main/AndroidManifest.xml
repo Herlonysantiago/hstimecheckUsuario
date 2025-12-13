@@ -7,7 +7,8 @@
     <application
         android:label="HsTimeCheck"
         android:icon="@mipmap/ic_launcher"
-        android:theme="@style/Theme.HsTimeCheck">
+        android:theme="@style/Theme.HsTimeCheck"
+        android:forceDarkAllowed="false">
 
         <!-- SPLASH REAL -->
         <activity
@@ -24,20 +25,24 @@
         <!-- Tela de Detalhe -->
         <activity android:name="com.hs.solutions.hstimecheck.detail.ProdutoDetalheActivity" />
         <activity android:name="com.hs.solutions.hstimecheck.ui.FullImageActivity" />
-
+        <activity android:name="com.hs.solutions.hstimecheck.aprovacao.AprovacaoComercialActivity"/>
+        <activity android:name="com.hs.solutions.hstimecheck.ui.PainelOperacionalActivity"/>
+        <activity android:name="com.hs.solutions.hstimecheck.ui.TelaListaFiltradaActivity"/>
         <!-- Scanner -->
         <activity
             android:name="com.hs.solutions.hstimecheck.scanner.ScannerActivity"
             android:exported="false" />
 
-        <!-- Tela Principal NORMAL -->
+        <!-- Tela Principal -->
         <activity
             android:name="com.hs.solutions.hstimecheck.ui.TelaPrincipalActivity"
             android:exported="false" />
+
         <activity
             android:name=".cadastro.CadastroProdutoActivity"
             android:exported="false" />
 
     </application>
+
 
 </manifest>

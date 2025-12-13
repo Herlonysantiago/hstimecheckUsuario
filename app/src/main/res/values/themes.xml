@@ -2,7 +2,7 @@
 <resources>
 
     <!-- TEMA PRINCIPAL -->
-    <style name="Theme.HsTimeCheck" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.HsTimeCheck" parent="Theme.Material3.Light.NoActionBar">
         <item name="colorPrimary">@color/md_theme_light_primary</item>
         <item name="colorPrimaryContainer">@color/md_theme_light_primaryContainer</item>
         <item name="colorSecondary">@color/md_theme_light_secondary</item>
@@ -11,6 +11,7 @@
         <!-- FONTE GLOBAL -->
         <item name="fontFamily">@font/poppins</item>
     </style>
+
 
 
     <!-- TEMA OFICIAL DA SPLASH -->

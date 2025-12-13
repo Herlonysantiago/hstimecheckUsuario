@@ -1,10 +1,5 @@
-/*
 package com.hs.solutions.hstimecheck.ui
 
-import java.time.LocalDate
-import java.time.format.DateTimeParseException
-import java.time.temporal.ChronoUnit
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -14,20 +9,21 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontWeight
+import com.hs.solutions.hstimecheck.aprovacao.AprovacaoComercialActivity
 import com.hs.solutions.hstimecheck.core.AppContainer
-import com.hs.solutions.hstimecheck.models.Produto
-import com.hs.solutions.hstimecheck.models.StatusProduto
-import com.hs.solutions.hstimecheck.scanner.ScannerActivity
+import com.hs.solutions.hstimecheck.models.*
+import java.time.LocalDate
+import java.time.format.DateTimeParseException
+import java.time.temporal.ChronoUnit
 
 class PainelOperacionalActivity : ComponentActivity() {
 
@@ -40,54 +36,48 @@ class PainelOperacionalActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 val produtos by service.produtos.collectAsState()
-                PainelOperacional(this, produtos)
+                PainelOperacional(produtos)
             }
         }
     }
 }
-fun diasAteValidadeFromStringB(dataStr: String?): Long? {
+
+// ---------------- FUNÇÕES AUX ----------------
+
+fun diasAteValidade(dataStr: String?): Long? {
     if (dataStr.isNullOrBlank()) return null
     return try {
         val d = LocalDate.parse(dataStr)
         ChronoUnit.DAYS.between(LocalDate.now(), d)
-    } catch (e: DateTimeParseException) {
+    } catch (_: DateTimeParseException) {
         null
     }
 }
 
-*/
-/* -------------------------------------------------------------- *//*
-
-*/
-/* NAVEGAÇÃO SIMPLES                                              *//*
-
-*/
-/* -------------------------------------------------------------- *//*
-
-inline fun <reified T : Activity> Activity.navegarPara() {
-    startActivity(Intent(this, T::class.java))
-}
-
-*/
-/* -------------------------------------------------------------- *//*
-
-*/
-/* LAYOUT PRINCIPAL                                               *//*
-
-*/
-/* -------------------------------------------------------------- *//*
-
+// ---------------- DASHBOARD ----------------
 
 @Composable
-fun PainelOperacional(activity: Activity, produtos: List<Produto>) {
+fun PainelOperacional(produtos: List<Produto>) {
 
-    val total = produtos.size
-    val vencendo = produtos.count {
-        val d = diasAteValidadeFromStringB(it.validadeAtual)
+    val context = LocalContext.current
+
+    val ate15 = produtos.count {
+        val d = diasAteValidade(it.validadeAtual)
         d != null && d in 0..15
     }
-    val aguardando = produtos.count { it.status == StatusProduto.AGUARDANDO_APROVACAO }
-    val trabalhando = produtos.count { it.status == StatusProduto.TRABALHANDO_PRECO }
+
+    val semana = produtos.count {
+        val d = diasAteValidade(it.validadeAtual)
+        d != null && d in 0..7
+    }
+
+    val queimando = produtos.count {
+        it.status == StatusProduto.TRABALHANDO_PRECO
+    }
+
+    val aguardando = produtos.count {
+        it.status == StatusProduto.AGUARDANDO_APROVACAO
+    }
 
     Column(
         modifier = Modifier
@@ -95,81 +85,131 @@ fun PainelOperacional(activity: Activity, produtos: List<Produto>) {
             .padding(16.dp)
     ) {
 
-        Text(
-            "Painel Operacional",
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        */
-/* ---------------- INDICADORES ---------------- *//*
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            IndicadorPequeno("Total", total.toString(), Color(0xFF1565C0))
-            IndicadorPequeno("Vencendo", vencendo.toString(), Color(0xFFE65100))
-            IndicadorPequeno("Aprovação", aguardando.toString(), Color(0xFFB71C1C))
-            IndicadorPequeno("Preço", trabalhando.toString(), Color(0xFF2E7D32))
-        }
-
+        Text("Painel Operacional", fontSize = 26.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(24.dp))
 
-        Text("Acessar rapidamente", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+        // ----------- CARDS INDICADORES -----------
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            IndicadorGrande(
+                "Até 15 dias",
+                ate15.toString(),
+                Color(0xFFE65100),
+                Modifier.weight(1f)
+            ) {
+                abrirListaFiltrada(context, FiltroLista.ATE_15_DIAS)
+            }
+
+            IndicadorGrande(
+                "Essa semana",
+                semana.toString(),
+                Color(0xFFD32F2F),
+                Modifier.weight(1f)
+            ) {
+                abrirListaFiltrada(context, FiltroLista.ESSA_SEMANA)
+            }
+        }
+
         Spacer(Modifier.height(12.dp))
 
-        Column(Modifier.fillMaxWidth()) {
-
-            LinhaAtalho("Produtos", Icons.Default.List) {
-                activity.navegarPara<TelaPrincipalActivity>()
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            IndicadorGrande(
+                "Queima de estoque",
+                queimando.toString(),
+                Color(0xFF2E7D32),
+                Modifier.weight(1f)
+            ) {
+                abrirListaFiltrada(context, FiltroLista.QUEIMANDO_ESTOQUE)
             }
 
-            LinhaAtalho("Scanner", Icons.Default.CameraAlt) {
-                activity.navegarPara<ScannerActivity>()
+            IndicadorGrande(
+                "Aguardando aprovação",
+                aguardando.toString(),
+                Color(0xFFB71C1C),
+                Modifier.weight(1f)
+            ) {
+                abrirListaFiltrada(context, FiltroLista.AGUARDANDO_APROVACAO)
             }
+        }
 
-            LinhaAtalho("Vencendo", Icons.Default.Warning) {}
+        // ----------- BOTÕES INFERIORES -----------
 
-            LinhaAtalho("Aprovação Comercial", Icons.Default.Check) {}
+        Spacer(Modifier.height(32.dp))
 
-            LinhaAtalho("Verificação de Estoque", Icons.Default.Inventory) {}
+        Text(
+            text = "Acessar rapidamente",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        LinhaAtalho("Produtos", Icons.Default.List) {
+            context.startActivity(
+                Intent(context, TelaPrincipalActivity::class.java)
+            )
+        }
+
+        LinhaAtalho("Aprovação Comercial", Icons.Default.ThumbUp) {
+            context.startActivity(
+                Intent(context, AprovacaoComercialActivity::class.java)
+            )
+        }
+
+        LinhaAtalho("Queima de Estoque", Icons.Default.LocalFireDepartment) {
+            abrirListaFiltrada(context, FiltroLista.QUEIMANDO_ESTOQUE)
+        }
+
+        LinhaAtalho("Produtos Vencendo", Icons.Default.AccessTime) {
+            abrirListaFiltrada(context, FiltroLista.ESSA_SEMANA)
         }
     }
 }
 
-*/
-/* -------------------------------------------------------------- *//*
+// ---------------- NAVEGAÇÃO ----------------
 
-*/
-/* COMPONENTES VISUAIS                                            *//*
+fun abrirListaFiltrada(
+    context: android.content.Context,
+    filtro: FiltroLista
+) {
+    val intent = Intent(context, TelaListaFiltradaActivity::class.java)
+    intent.putExtra("filtro", filtro.name)
+    context.startActivity(intent)
+}
 
-*/
-/* -------------------------------------------------------------- *//*
-
+// ---------------- COMPONENTES ----------------
 
 @Composable
-fun IndicadorPequeno(titulo: String, valor: String, cor: Color) {
+fun IndicadorGrande(
+    titulo: String,
+    valor: String,
+    cor: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
     Card(
-        modifier = Modifier
-            .width(90.dp)
-            .height(90.dp),
-        colors = CardDefaults.cardColors(cor.copy(alpha = 0.15f))
+        modifier = modifier
+            .height(110.dp)
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = cor.copy(alpha = 0.12f))
     ) {
         Column(
-            Modifier.padding(10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.Center
         ) {
-            Text(titulo, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(4.dp))
-            Text(valor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(titulo, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(6.dp))
+            Text(valor, fontSize = 26.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
-fun LinhaAtalho(texto: String, icone: ImageVector, onClick: () -> Unit) {
+fun LinhaAtalho(
+    texto: String,
+    icone: ImageVector,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -187,4 +227,3 @@ fun LinhaAtalho(texto: String, icone: ImageVector, onClick: () -> Unit) {
         }
     }
 }
-*/

@@ -11,6 +11,9 @@ import com.hs.solutions.hstimecheck.core.ProductService
 import com.hs.solutions.hstimecheck.models.StatusProduto
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import android.widget.EditText
+import com.hs.solutions.hstimecheck.core.AppContainer
+import androidx.appcompat.app.AlertDialog
 import com.hs.solutions.hstimecheck.core.ProductRepositoryImpl
 class AprovacaoComercialActivity : AppCompatActivity() {
 
@@ -27,10 +30,9 @@ class AprovacaoComercialActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.recyclerViewAprovacao)
 
         // ✅ INSTÂNCIA REAL DO SERVICE
-        val repository = ProductRepositoryImpl()
-        productService = ProductService(repository)
 
-        productService = ProductService(repository)
+        productService = AppContainer.productService
+
 
         lifecycleScope.launch {
             productService.carregar()
@@ -59,21 +61,71 @@ class AprovacaoComercialActivity : AppCompatActivity() {
     }
 
     private fun configurarAdapter() {
+
         adapter = AprovacaoAdapter(
             listaExibida,
+
+            // ================= APROVAR =================
             onAprovar = { item ->
-                lifecycleScope.launch { aprovar(item) }
+                val produto = productService.getProdutoById(item.id) ?: return@AprovacaoAdapter
+
+                val editPreco = EditText(this).apply {
+                    hint = "Preço aprovado"
+                    setText(item.precoSugerido.toString())
+                    inputType =
+                        android.text.InputType.TYPE_CLASS_NUMBER or
+                                android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+                }
+
+                AlertDialog.Builder(this)
+                    .setTitle("Aprovação Comercial")
+                    .setMessage("Informe o preço aprovado")
+                    .setView(editPreco)
+                    .setPositiveButton("Aprovar") { _, _ ->
+                        val preco = editPreco.text.toString().toDoubleOrNull()
+                        if (preco != null) {
+                            lifecycleScope.launch {
+                                productService.aprovarComercial(produto, preco)
+                                listaExibida.remove(item)
+                                adapter.notifyDataSetChanged()
+                            }
+                        }
+                    }
+                    .setNegativeButton("Cancelar", null)
+                    .show()
             },
+
+            // ================= REJEITAR =================
             onRejeitar = { item ->
-                lifecycleScope.launch { rejeitar(item) }
+                val produto = productService.getProdutoById(item.id) ?: return@AprovacaoAdapter
+
+                val editMotivo = EditText(this).apply {
+                    hint = "Motivo da rejeição (opcional)"
+                }
+
+                AlertDialog.Builder(this)
+                    .setTitle("Rejeitar Aprovação")
+                    .setView(editMotivo)
+                    .setPositiveButton("Rejeitar") { _, _ ->
+                        lifecycleScope.launch {
+                            productService.rejeitarComercial(produto, editMotivo.text.toString())
+                            listaExibida.remove(item)
+                            adapter.notifyDataSetChanged()
+                        }
+                    }
+                    .setNegativeButton("Cancelar", null)
+                    .show()
             },
+
+            // ================= EDITAR (mantido) =================
             onEditar = { item ->
-                editar(item)
+                Toast.makeText(this, "Edição futura", Toast.LENGTH_SHORT).show()
             }
         )
 
         recyclerView.adapter = adapter
     }
+
 
     private suspend fun aprovar(item: AprovacaoItem) {
         val produto = productService.produtos.first().find { it.id == item.id } ?: return
