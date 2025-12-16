@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "HsTimeCheck"
+rootProject.name = "HsTimeCheck 2.0"
 include(":app")

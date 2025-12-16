@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.hs.solutions.hstimecheck"
+    namespace = "com.hs.solutions.hstimecheck_2_0"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.hs.solutions.hstimecheck"
+        applicationId = "com.hs.solutions.hstimecheck_2_0"
         minSdk = 24
         targetSdk = 34
         versionCode = 1

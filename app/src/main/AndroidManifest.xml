@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.hs.solutions.hstimecheck_2_0">
 
-    <!-- Permissão obrigatória -->
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application
@@ -10,39 +10,33 @@
         android:theme="@style/Theme.HsTimeCheck"
         android:forceDarkAllowed="false">
 
-        <!-- SPLASH REAL -->
         <activity
-            android:name=".SplashActivity"
+            android:name="com.hs.solutions.hstimecheck_2_0.SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.HsTimeCheck.Splash">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- Tela de Detalhe -->
-        <activity android:name="com.hs.solutions.hstimecheck.detail.ProdutoDetalheActivity" />
-        <activity android:name="com.hs.solutions.hstimecheck.ui.FullImageActivity" />
-        <activity android:name="com.hs.solutions.hstimecheck.aprovacao.AprovacaoComercialActivity"/>
-        <activity android:name="com.hs.solutions.hstimecheck.ui.PainelOperacionalActivity"/>
-        <activity android:name="com.hs.solutions.hstimecheck.ui.TelaListaFiltradaActivity"/>
-        <!-- Scanner -->
-        <activity
-            android:name="com.hs.solutions.hstimecheck.scanner.ScannerActivity"
-            android:exported="false" />
-
-        <!-- Tela Principal -->
-        <activity
-            android:name="com.hs.solutions.hstimecheck.ui.TelaPrincipalActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".cadastro.CadastroProdutoActivity"
-            android:exported="false" />
+        <activity android:name="com.hs.solutions.hstimecheck_2_0.detail.ProdutoDetalheActivity" />
+        <activity android:name="com.hs.solutions.hstimecheck_2_0.ui.FullImageActivity" />
+        <activity android:name="com.hs.solutions.hstimecheck_2_0.aprovacao.AprovacaoComercialActivity"/>
+        <activity android:name="com.hs.solutions.hstimecheck_2_0.ui.PainelOperacionalActivity"/>
+        <activity android:name="com.hs.solutions.hstimecheck_2_0.ui.TelaListaFiltradaActivity"/>
+        <activity android:name="com.hs.solutions.hstimecheck_2_0.scanner.ScannerActivity" />
+        <activity android:name="com.hs.solutions.hstimecheck_2_0.ui.TelaPrincipalActivity" />
+        <activity android:name="com.hs.solutions.hstimecheck_2_0.cadastro.CadastroProdutoActivity" />
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
-
-
 </manifest>
