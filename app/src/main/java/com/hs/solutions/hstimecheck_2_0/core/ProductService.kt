@@ -34,9 +34,35 @@ class ProductService(private val repo: ProductRepository) {
             )
         }
 
-        repo.salvar(produto)
+        val novo = repo.carregar().none { it.id == produto.id }
+
+        val base = produto.copy()
+
+        // 🔹 HISTÓRICO
+        base.historico.add(
+            if (novo)
+                HistoryService.registrar(
+                    evento = "Cadastro do produto",
+                    detalhe = "Cadastro inicial"
+                )
+            else
+                HistoryService.registrar(
+                    evento = "Atualização do produto",
+                    detalhe = "Produto editado"
+                )
+        )
+
+        // 🔹 STATUS SANITÁRIO
+        val statusAjustado = StatusRules.aplicarRegraSanitaria(base)
+
+        val final = base.copy(
+            status = statusAjustado
+        )
+
+        repo.salvar(final)
         carregar()
     }
+
 
     suspend fun aprovarComercial(
         produto: Produto,
@@ -83,10 +109,28 @@ class ProductService(private val repo: ProductRepository) {
     }
 
     suspend fun mudarStatus(produto: Produto, novo: StatusProduto) {
-        val atualizado = produto.copy(status = novo)
+
+        val atualizado = when (novo) {
+
+            // 🔹 VERIFICAÇÃO NÃO ALTERA STATUS
+            StatusProduto.VERIFICACAO_ESTOQUE -> {
+                produto.copy(
+                    emVerificacaoEstoque = true
+                )
+            }
+
+            // 🔹 QUALQUER OUTRO STATUS É PRINCIPAL
+            else -> {
+                produto.copy(
+                    status = novo
+                )
+            }
+        }
+
         repo.salvar(atualizado)
         carregar()
     }
+
 
     fun getProdutoById(id: String): Produto? {
         return _produtos.value.find { it.id == id }

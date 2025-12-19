@@ -1,79 +1,126 @@
 package com.hs.solutions.hstimecheck_2_0.ui
 
-// FOTO / COIL
-import coil.compose.AsyncImage
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.foundation.border
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.draw.clip
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.ui.Alignment
-
-// ANDROID
+// ================= ANDROID =================
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-
-// COMPOSE
+import java.io.File
+// ================= COMPOSE =================
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-// APP
+// ================= COIL =================
+import coil.compose.AsyncImage
+
+// ================= APP =================
+import com.hs.solutions.hstimecheck_2_0.configuracoes.ConfiguracoesSistemaActivity
+
+import com.hs.solutions.hstimecheck_2_0.R
 import com.hs.solutions.hstimecheck_2_0.core.AppContainer
+import com.hs.solutions.hstimecheck_2_0.core.AppPreferences
 import com.hs.solutions.hstimecheck_2_0.core.ProductService
 import com.hs.solutions.hstimecheck_2_0.cadastro.CadastroProdutoActivity
+import com.hs.solutions.hstimecheck_2_0.aprovacao.AprovacaoComercialActivity
 import com.hs.solutions.hstimecheck_2_0.models.Produto
 import com.hs.solutions.hstimecheck_2_0.models.StatusProduto
-
-// CORROTINAS
+import com.hs.solutions.hstimecheck_2_0.historico.HistoricoGeralActivity
+import com.hs.solutions.hstimecheck_2_0.ui.FullImageActivity
+// ================= CORROTINAS =================
 import kotlinx.coroutines.launch
-
 import java.text.SimpleDateFormat
 import java.util.*
-import com.hs.solutions.hstimecheck_2_0.aprovacao.AprovacaoComercialActivity
-
+import android.net.Uri
+// =======================================================
+// ACTIVITY PRINCIPAL (ÚNICO onCreate — CORRETO)
+// =======================================================
 class TelaPrincipalActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         AppContainer.init(this)
         val service = AppContainer.productService
+        val fotoUrl = intent.getStringExtra("fotoUrl")
 
         setContent {
             MaterialTheme {
+                AplicarConfiguracoesGlobais()
                 TelaPrincipal(service)
             }
         }
     }
 }
 
-/* =============================================================
-   CÁLCULO DE DIAS RESTANTES (espera validade no formato yyyy-MM-dd)
-   ============================================================= */
+// =======================================================
+// CONFIGURAÇÕES GLOBAIS (DataStore)
+// =======================================================
+@Composable
+fun AplicarConfiguracoesGlobais() {
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        AppPreferences.read(context, AppPreferences.MODO_ONLINE, true).collect { }
+    }
+
+    LaunchedEffect(Unit) {
+        AppPreferences.read(context, AppPreferences.ALERTA_VALIDADE, true).collect { }
+    }
+
+    LaunchedEffect(Unit) {
+        AppPreferences.read(context, AppPreferences.ALERTA_APROVACAO, true).collect { }
+    }
+}
+
+// =======================================================
+// FUNÇÕES AUXILIARES (SUAS)
+// =======================================================
 fun getDiasRestantes(validade: String?): Int {
-    if (validade.isNullOrBlank()) return Int.MAX_VALUE // usaremos MAX_VALUE para "Sem validade"
+    if (validade.isNullOrBlank()) return Int.MAX_VALUE
+
     return try {
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+
         val validadeDate = sdf.parse(validade) ?: return Int.MAX_VALUE
-        val currentDate = Date()
-        val diffInMillis = validadeDate.time - currentDate.time
-        (diffInMillis / (1000 * 60 * 60 * 24)).toInt()
+
+        val hojeCal = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+
+        val validadeCal = Calendar.getInstance().apply {
+            time = validadeDate
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+
+        val diffMillis = validadeCal.timeInMillis - hojeCal.timeInMillis
+        (diffMillis / (1000 * 60 * 60 * 24)).toInt()
+
     } catch (_: Exception) {
         Int.MAX_VALUE
     }
@@ -87,16 +134,19 @@ fun SectionHeader(text: String) {
             .padding(vertical = 10.dp, horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Divider(modifier = Modifier.weight(1f))
+        Divider(Modifier.weight(1f))
         Text(
             "  $text  ",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold
         )
-        Divider(modifier = Modifier.weight(1f))
+        Divider(Modifier.weight(1f))
     }
 }
 
+// =======================================================
+// DRAWER MENU (SEU, INTEIRO)
+// =======================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrawerMenu(
@@ -112,16 +162,11 @@ fun DrawerMenu(
     onHistorico: () -> Unit = {},
     onConfiguracoes: () -> Unit = {},
     onSobre: () -> Unit = {},
-    onCreditos: () -> Unit = {},
+    onCreditos: () -> Unit = {}
 ) {
-
     ModalDrawerSheet {
 
-        Text(
-            text = "Menu",
-            modifier = Modifier.padding(16.dp),
-            fontWeight = FontWeight.Bold
-        )
+        Text("Menu", Modifier.padding(16.dp), fontWeight = FontWeight.Bold)
 
         NavigationDrawerItem(
             label = { Text("Dashboard") },
@@ -132,8 +177,8 @@ fun DrawerMenu(
 
         NavigationDrawerItem(
             label = { Text("Produtos") },
-            selected = false,
             icon = { Icon(Icons.Default.Inventory, null) },
+            selected = false,
             onClick = onProdutos
         )
 
@@ -148,8 +193,8 @@ fun DrawerMenu(
 
         NavigationDrawerItem(
             label = { Text("Gerencial (Pendências)") },
-            selected = false,
             icon = { Icon(Icons.Default.FactCheck, null) },
+            selected = false,
             onClick = onGerencial
         )
 
@@ -224,11 +269,17 @@ fun DrawerMenu(
     }
 }
 
+// =======================================================
+// TELA PRINCIPAL (SUA LÓGICA COMPLETA)
+// =======================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaPrincipal(service: ProductService) {
 
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    // ---------------- STATE ----------------
+    val drawerState = rememberDrawerState(
+        initialValue = DrawerValue.Closed
+    )
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -239,113 +290,123 @@ fun TelaPrincipal(service: ProductService) {
     val selectedIds = remember { mutableStateListOf<String>() }
 
     val launcherCadastro =
-        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
                 scope.launch { service.carregar() }
             }
         }
 
-    LaunchedEffect(Unit) { service.carregar() }
+    LaunchedEffect(Unit) {
+        service.carregar()
+    }
 
-    // listaFiltrada = TODOS produtos (não filtramos por validade) — mantém seu comportamento anterior de busca
+    // ---------------- FILTRO ----------------
     val listaFiltrada = produtos.filter {
         query.isBlank() ||
                 it.descricao.contains(query, ignoreCase = true) ||
                 it.codigoBarras.contains(query)
     }
 
-    // AGRUPAMENTO: key = diasRestantes (Int), Int.MAX_VALUE => sem validade
-    val grupos: Map<Int, List<Produto>> = listaFiltrada.groupBy { getDiasRestantes(it.validadeAtual) }
+    val grupos = listaFiltrada.groupBy {
+        getDiasRestantes(it.validadeAtual)
+    }
 
-    // ordena chaves: vencidos (negativos) → 0 → positivos ascendentes → Int.MAX_VALUE (sem validade) por último
-    val chavesOrdenadas = grupos.keys.sortedWith(compareBy { k ->
-        when {
-            k == Int.MAX_VALUE -> Int.MAX_VALUE
-            else -> k
-        }
-    })
+    val chavesOrdenadas = grupos.keys.sorted()
 
+    // ---------------- DRAWER ----------------
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             DrawerMenu(
-                onDashboard = {
-                    context.startActivity(
-                        Intent(context, PainelOperacionalActivity::class.java)
-                    )
-                },
-
-                        onAprovacao = {
+                onAprovacao = {
                     context.startActivity(
                         Intent(context, AprovacaoComercialActivity::class.java)
+                    )
+                },
+                onConfiguracoes = {
+                    context.startActivity(
+                        Intent(context, ConfiguracoesSistemaActivity::class.java)
+                    )
+                },
+                onHistorico = {
+                    context.startActivity(
+                        Intent(context, HistoricoGeralActivity::class.java)
                     )
                 }
             )
         }
-    )
-    {
+    ) {
 
+        // ---------------- SCAFFOLD ÚNICO ----------------
         Scaffold(
             topBar = {
+
                 if (selectionMode) {
                     TopAppBar(
                         title = { Text("${selectedIds.size} selecionado(s)") },
                         navigationIcon = {
-                            IconButton(onClick = {
-                                selectionMode = false
-                                selectedIds.clear()
-                            }) {
-                                Icon(Icons.Default.Close, contentDescription = "Cancelar seleção")
+                            IconButton(
+                                onClick = {
+                                    selectionMode = false
+                                    selectedIds.clear()
+                                }
+                            ) {
+                                Icon(Icons.Default.Close, null)
                             }
                         },
                         actions = {
 
-                            // ENVIAR PARA APROVAÇÃO
                             IconButton(onClick = {
                                 scope.launch {
                                     selectedIds.forEach { id ->
-                                        val p = produtos.find { it.id == id }
-                                        if (p != null) {
-                                            service.mudarStatus(p, StatusProduto.AGUARDANDO_APROVACAO)
+                                        produtos.find { it.id == id }?.let {
+                                            service.mudarStatus(
+                                                it,
+                                                StatusProduto.AGUARDANDO_APROVACAO
+                                            )
                                         }
                                     }
                                     selectionMode = false
                                     selectedIds.clear()
                                 }
                             }) {
-                                Icon(Icons.Default.ThumbUp, contentDescription = "Aprovação")
+                                Icon(Icons.Default.ThumbUp, null)
                             }
 
-                            // ENVIAR PARA TRABALHANDO PREÇO
                             IconButton(onClick = {
                                 scope.launch {
                                     selectedIds.forEach { id ->
-                                        val p = produtos.find { it.id == id }
-                                        if (p != null) {
-                                            service.mudarStatus(p, StatusProduto.TRABALHANDO_PRECO)
+                                        produtos.find { it.id == id }?.let {
+                                            service.mudarStatus(
+                                                it,
+                                                StatusProduto.TRABALHANDO_PRECO
+                                            )
                                         }
                                     }
                                     selectionMode = false
                                     selectedIds.clear()
                                 }
                             }) {
-                                Icon(Icons.Default.LocalFireDepartment, contentDescription = "Preço")
+                                Icon(Icons.Default.LocalFireDepartment, null)
                             }
 
-                            // VERIFICAÇÃO DE ESTOQUE
                             IconButton(onClick = {
                                 scope.launch {
                                     selectedIds.forEach { id ->
-                                        val p = produtos.find { it.id == id }
-                                        if (p != null) {
-                                            service.mudarStatus(p, StatusProduto.VERIFICACAO_ESTOQUE)
+                                        produtos.find { it.id == id }?.let {
+                                            service.mudarStatus(
+                                                it,
+                                                StatusProduto.VERIFICACAO_ESTOQUE
+                                            )
                                         }
                                     }
                                     selectionMode = false
                                     selectedIds.clear()
                                 }
                             }) {
-                                Icon(Icons.Default.Inventory, contentDescription = "Estoque")
+                                Icon(Icons.Default.Inventory, null)
                             }
                         }
                     )
@@ -353,28 +414,34 @@ fun TelaPrincipal(service: ProductService) {
                     TopAppBar(
                         title = { Text("HS TimeCheck") },
                         navigationIcon = {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            IconButton(
+                                onClick = {
+                                    scope.launch { drawerState.open() }
+                                }
+                            ) {
+                                Icon(Icons.Default.Menu, null)
                             }
                         }
                     )
                 }
             },
 
-
-                    floatingActionButton = {
+            floatingActionButton = {
                 FloatingActionButton(
                     onClick = {
-                        launcherCadastro.launch(Intent(context, CadastroProdutoActivity::class.java))
+                        launcherCadastro.launch(
+                            Intent(context, CadastroProdutoActivity::class.java)
+                        )
                     }
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Adicionar Produto")
+                    Icon(Icons.Default.Add, null)
                 }
             }
         ) { padding ->
 
+            // ---------------- CONTEÚDO ----------------
             Column(
-                Modifier
+                modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
             ) {
@@ -382,13 +449,15 @@ fun TelaPrincipal(service: ProductService) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     singleLine = true,
                     placeholder = { Text("Buscar produto...") }
                 )
 
-                LazyColumn(Modifier.fillMaxSize()) {
+                LazyColumn {
 
                     chavesOrdenadas.forEach { chave ->
 
@@ -402,12 +471,10 @@ fun TelaPrincipal(service: ProductService) {
                             else -> "$chave dias restantes"
                         }
 
-                        // CABEÇALHO DO GRUPO
                         item {
                             SectionHeader(label)
                         }
 
-                        // LISTA DO GRUPO
                         items(grupo) { produto ->
 
                             val isSelected = produto.id in selectedIds
@@ -417,13 +484,21 @@ fun TelaPrincipal(service: ProductService) {
                                 isSelected = isSelected,
                                 onClick = {
                                     if (selectionMode) {
-                                        if (isSelected) selectedIds.remove(produto.id)
-                                        else selectedIds.add(produto.id)
-                                        if (selectedIds.isEmpty()) selectionMode = false
+                                        if (isSelected) {
+                                            selectedIds.remove(produto.id)
+                                        } else {
+                                            selectedIds.add(produto.id)
+                                        }
+                                        if (selectedIds.isEmpty()) {
+                                            selectionMode = false
+                                        }
                                     } else {
-                                        val intent = Intent(context, CadastroProdutoActivity::class.java)
-                                        intent.putExtra("produto_id", produto.id)
-                                        context.startActivity(intent)
+                                        context.startActivity(
+                                            Intent(
+                                                context,
+                                                CadastroProdutoActivity::class.java
+                                            ).putExtra("produto_id", produto.id)
+                                        )
                                     }
                                 },
                                 onLongPress = {
@@ -435,7 +510,10 @@ fun TelaPrincipal(service: ProductService) {
                                 },
                                 onDoubleClick = {
                                     scope.launch {
-                                        service.mudarStatus(produto, StatusProduto.TRABALHANDO_PRECO)
+                                        service.mudarStatus(
+                                            produto,
+                                            StatusProduto.TRABALHANDO_PRECO
+                                        )
                                     }
                                 }
                             )
@@ -447,6 +525,63 @@ fun TelaPrincipal(service: ProductService) {
     }
 }
 
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TelaHistoricoGeral(service: ProductService) {
+
+    val produtos by service.produtos.collectAsState()
+
+    val historicoGeral = produtos
+        .flatMap { p -> p.historico.map { h -> p.descricao to h } }
+        .sortedByDescending { it.second.dataEvento }
+
+    LaunchedEffect(Unit) { service.carregar() }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text("Histórico Geral") })
+        }
+    ) { padding ->
+
+        LazyColumn(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+        ) {
+
+            if (historicoGeral.isEmpty()) {
+                item {
+                    Text(
+                        "Nenhum histórico registrado",
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+
+            items(historicoGeral) { (descricao, item) ->
+                Card(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                ) {
+                    Column(Modifier.padding(12.dp)) {
+                        Text(item.evento, fontWeight = FontWeight.Bold)
+                        Text(descricao, style = MaterialTheme.typography.bodySmall)
+                        item.detalhe?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall)
+                        }
+                        Text(item.dataEvento, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// =======================================================
+// ITEM DO PRODUTO (COMPLETO)
+// =======================================================
 @Composable
 fun ProdutoItem(
     produto: Produto,
@@ -456,102 +591,150 @@ fun ProdutoItem(
     onDoubleClick: () -> Unit
 ) {
     var lastTapTime by remember { mutableStateOf(0L) }
+    val context = LocalContext.current
 
-    // dias para cor de fundo (tratamento: Int.MAX_VALUE = sem validade -> verde neutro)
     val dias = getDiasRestantes(produto.validadeAtual)
+
     val corFundo = when {
-        dias == Int.MAX_VALUE -> Color(0xFFF0F0F0)
-        dias <= 0 -> Color.Red.copy(alpha = 0.10f)
-        dias <= 2 -> Color(0xFFFFE0E0) // urgente
-        dias <= 5 -> Color.Yellow.copy(alpha = 0.12f)
-        else -> Color.Green.copy(alpha = 0.08f)
+        dias == Int.MAX_VALUE -> Color(0xFFF5F5F5)
+        dias < 0 -> Color.Red.copy(alpha = 0.10f)
+        dias <= 2 -> Color(0xFFFFE0E0)
+        dias <= 5 -> Color.Yellow.copy(alpha = 0.10f)
+        else -> Color(0xFFE8F5E9)
+    }
+
+    val statusBadges = mutableListOf<Pair<String, Color>>()
+
+    when (produto.status) {
+        StatusProduto.AGUARDANDO_APROVACAO ->
+            statusBadges += "Aguardando aprovação" to Color(0xFFFF9800)
+
+        StatusProduto.TRABALHANDO_PRECO ->
+            statusBadges += "Trabalhando preço" to Color(0xFFD32F2F)
+
+        else -> {}
+    }
+
+    if (produto.emVerificacaoEstoque) {
+        statusBadges += "Verificação estoque" to Color(0xFF1976D2)
     }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(12.dp, 6.dp)
-            .pointerInput(produto.id) {
-                detectTapGestures(
-                    onLongPress = { onLongPress() },
-                    onTap = {
-                        val now = System.currentTimeMillis()
-                        if (now - lastTapTime < 200) onDoubleClick()
-                        else onClick()
-                        lastTapTime = now
-                    }
-                )
-            },
+            .padding(horizontal = 6.dp, vertical = 3.dp),
         colors = if (isSelected)
-            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+            )
         else
             CardDefaults.cardColors(containerColor = corFundo)
     ) {
 
         Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 6.dp, vertical = 4.dp)
+                .pointerInput(produto.id) {
+                    detectTapGestures(
+                        onLongPress = { onLongPress() },
+                        onTap = {
+                            val now = System.currentTimeMillis()
+                            if (now - lastTapTime < 220) onDoubleClick()
+                            else onClick()
+                            lastTapTime = now
+                        }
+                    )
+                },
             verticalAlignment = Alignment.CenterVertically
         ) {
 
-            val context = LocalContext.current
-
             Box(
                 modifier = Modifier
-                    .size(70.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .border(1.dp, Color(0x33000000), RoundedCornerShape(10.dp))
-                    .pointerInput(produto.id) {
-                        detectTapGestures(
-                            onTap = {
-                                if (!produto.fotoUrl.isNullOrBlank()) {
-                                    val intent = Intent(context, FullImageActivity::class.java)
-                                    intent.putExtra("fotoUrl", produto.fotoUrl)
-                                    context.startActivity(intent)
-                                }
-                            }
-                        )
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .border(1.dp, Color(0x22000000), RoundedCornerShape(8.dp))
+                    .clickable {
+                        if (!produto.fotoUrl.isNullOrBlank()) {
+                            context.startActivity(
+                                Intent(context, FullImageActivity::class.java)
+                                    .putExtra("fotoUrl", produto.fotoUrl)
+                            )
+                        }
                     }
             ) {
                 if (!produto.fotoUrl.isNullOrBlank()) {
                     AsyncImage(
-                        model = produto.fotoUrl,
+                        model = resolverImagem(produto.fotoUrl!!),
                         contentDescription = "Foto",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
-                } else {
+                }
+
+                else {
                     Icon(
                         Icons.Default.Image,
                         contentDescription = null,
                         tint = Color.Gray,
-                        modifier = Modifier.align(Alignment.Center).size(40.dp)
+                        modifier = Modifier.align(Alignment.Center).size(20.dp)
                     )
                 }
             }
 
-
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(8.dp))
 
             Column(Modifier.weight(1f)) {
 
-                Text(produto.descricao, fontWeight = FontWeight.Bold)
+                Text(
+                    produto.descricao,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1
+                )
 
-                Text("Código Barras: ${produto.codigoBarras}")
-                Text("Código Interno: ${produto.codigoInterno ?: "—"}")
+                Text(
+                    "CB: ${produto.codigoBarras}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Text(
+                    "CI: ${produto.codigoInterno ?: "—"}",
+                    style = MaterialTheme.typography.bodySmall
+                )
 
                 val total = produto.quantidadeAtual ?: 0
                 val qpc = produto.quantidadePorCaixa ?: 0
-
-                val quantidadeTexto =
+                val estoqueTexto =
                     if (qpc > 0 && total > 0) {
                         val cx = total / qpc
                         val un = total % qpc
-                        "Qtd: ${cx} cx • ${un} un (cx de $qpc)"
-                    } else "Qtd: ${total} un"
+                        "$cx cx • $un un"
+                    } else {
+                        "$total un"
+                    }
 
-                Text(quantidadeTexto)
+                Text(
+                    "Estoque: $estoqueTexto",
+                    style = MaterialTheme.typography.bodySmall
+                )
 
-                Text("Validade: ${produto.validadeAtual ?: "—"}")
+                Text(
+                    "Validade: ${produto.validadeAtual ?: "—"}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Row {
+                    statusBadges.forEach { (texto, cor) ->
+                        Text(
+                            texto,
+                            color = cor,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(end = 6.dp)
+                        )
+                    }
+                }
             }
         }
     }

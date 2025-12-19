@@ -16,6 +16,7 @@ object AppContainer {
 
         val jsonRepo = ProductRepositoryJson(context)
         productService = ProductService(jsonRepo)
+        FotoRepository.carregar(context)
 
         initialized = true
     }

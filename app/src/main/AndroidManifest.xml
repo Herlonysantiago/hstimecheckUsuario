@@ -2,7 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.hs.solutions.hstimecheck_2_0">
 
+    <!-- CÂMERA -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="true" />
+    <!-- ANDROID 13+ -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
+    <!-- ANDROID 12 OU MENOR -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
 
     <application
         android:label="HsTimeCheck"
@@ -28,6 +39,9 @@
         <activity android:name="com.hs.solutions.hstimecheck_2_0.scanner.ScannerActivity" />
         <activity android:name="com.hs.solutions.hstimecheck_2_0.ui.TelaPrincipalActivity" />
         <activity android:name="com.hs.solutions.hstimecheck_2_0.cadastro.CadastroProdutoActivity" />
+        <activity android:name="com.hs.solutions.hstimecheck_2_0.configuracoes.ConfiguracoesSistemaActivity"/>
+        <activity android:name="com.hs.solutions.hstimecheck_2_0.historico.HistoricoGeralActivity"/>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"

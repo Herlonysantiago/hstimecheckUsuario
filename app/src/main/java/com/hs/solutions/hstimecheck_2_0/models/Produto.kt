@@ -13,6 +13,7 @@ data class Produto(
 
     var precoAtual: Double? = null,
     var status: StatusProduto = StatusProduto.NORMAL,
+    var emVerificacaoEstoque: Boolean = false,
 
     // ➜ Campo adicionado conforme sua escolha (OPÇÃO B)
     var vendaDia: Int = 0,

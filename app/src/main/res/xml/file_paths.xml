@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<paths>
-    <cache-path name="images" path="images/" />
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Permite tudo dentro de getExternalFilesDir(...) -->
+    <external-files-path
+        name="external_files"
+        path="." />
+
+    <!-- (Opcional, pode manter cache se quiser) -->
+    <cache-path
+        name="cache"
+        path="." />
 
 </paths>

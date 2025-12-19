@@ -10,7 +10,9 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 // APP
 import com.hs.solutions.hstimecheck_2_0.core.ProductService
@@ -40,7 +42,7 @@ fun grupoInicialParaFiltro(
 }
 
 /* =============================================================
-   TELA BASE (REUTILIZA SEU LAYOUT E COMPONENTES)
+   TELA BASE
    ============================================================= */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,14 +114,17 @@ fun TelaPrincipalBase(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("HS TimeCheck – ${filtro.name.replace('_', ' ')}")
+                    Text(
+                        text = "HS TimeCheck – ${filtro.name.replace('_', ' ')}",
+                        fontSize = 14.sp
+                    )
                 }
             )
         }
     ) { padding ->
 
         Column(
-            Modifier
+            modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
         ) {
@@ -127,11 +132,19 @@ fun TelaPrincipalBase(
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
+                textStyle = LocalTextStyle.current.copy(
+                    fontSize = 13.sp
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp),
                 leadingIcon = { Icon(Icons.Default.Search, null) },
-                placeholder = { Text("Buscar produto...") },
+                placeholder = {
+                    Text(
+                        text = "Buscar produto...",
+                        fontSize = 10.sp
+                    )
+                },
                 singleLine = true
             )
 
@@ -153,7 +166,9 @@ fun TelaPrincipalBase(
                     }
 
                     item {
-                        SectionHeader(label)
+                        SectionHeader(
+                            text = label
+                        )
                     }
 
                     items(grupo) { produto ->
@@ -170,3 +185,9 @@ fun TelaPrincipalBase(
         }
     }
 }
+
+/* =============================================================
+   HEADER DE GRUPO — TEXTO MENOR
+   ============================================================= */
+
+
