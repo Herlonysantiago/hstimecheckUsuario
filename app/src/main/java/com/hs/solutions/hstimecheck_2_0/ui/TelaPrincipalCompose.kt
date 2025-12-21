@@ -566,13 +566,49 @@ fun TelaHistoricoGeral(service: ProductService) {
                         .padding(8.dp)
                 ) {
                     Column(Modifier.padding(12.dp)) {
-                        Text(item.evento, fontWeight = FontWeight.Bold)
-                        Text(descricao, style = MaterialTheme.typography.bodySmall)
-                        item.detalhe?.let {
-                            Text(it, style = MaterialTheme.typography.bodySmall)
+
+                        // 🔹 TÍTULO DO EVENTO
+                        Text(
+                            text = item.titulo,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(Modifier.height(4.dp))
+
+                        // 🔹 CÓDIGOS
+                        Text(
+                            text = buildString {
+                                item.codigoInterno?.let { append("CI: $it  ") }
+                                item.codigoBarras?.let { append("CB: $it") }
+                            },
+                            style = MaterialTheme.typography.labelSmall
+                        )
+
+                        // 🔹 VALIDADE
+                        item.validade?.let {
+                            Text(
+                                text = "Validade: $it",
+                                style = MaterialTheme.typography.labelSmall
+                            )
                         }
-                        Text(item.dataEvento, style = MaterialTheme.typography.labelSmall)
+
+                        Spacer(Modifier.height(6.dp))
+
+                        // 🔹 DESCRIÇÃO
+                        Text(
+                            text = item.descricao,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+
+                        Spacer(Modifier.height(6.dp))
+
+                        // 🔹 DATA
+                        Text(
+                            text = item.dataEvento,
+                            style = MaterialTheme.typography.labelSmall
+                        )
                     }
+
                 }
             }
         }

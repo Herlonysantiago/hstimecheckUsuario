@@ -1,5 +1,5 @@
 package com.hs.solutions.hstimecheck_2_0.core
-import android.util.Log
+
 import com.hs.solutions.hstimecheck_2_0.models.Produto
 import com.hs.solutions.hstimecheck_2_0.models.StatusProduto
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,18 +14,16 @@ class ProductService(private val repo: ProductRepository) {
     suspend fun carregar() {
         _produtos.value = repo.carregar()
     }
-    fun buscarPorCodigoBarrasLocal(codigo: String): Produto? {
-        return _produtos.value.firstOrNull {
-            it.codigoBarras == codigo
-        }
-    }
 
-    fun buscarPorCodigoInternoLocal(codigo: String): Produto? {
-        return _produtos.value.firstOrNull {
-            it.codigoInterno == codigo
-        }
-    }
+    fun buscarPorCodigoBarrasLocal(codigo: String): Produto? =
+        _produtos.value.firstOrNull { it.codigoBarras == codigo }
 
+    fun buscarPorCodigoInternoLocal(codigo: String): Produto? =
+        _produtos.value.firstOrNull { it.codigoInterno == codigo }
+
+    // =========================
+    // INSERIR
+    // =========================
     suspend fun inserirOuAtualizar(produto: Produto) {
 
         if (existeDuplicidade(produto)) {
@@ -35,74 +33,73 @@ class ProductService(private val repo: ProductRepository) {
         }
 
         val novo = repo.carregar().none { it.id == produto.id }
-
         val base = produto.copy()
 
-        // 🔹 HISTÓRICO
-        base.historico.add(
-            if (novo)
-                HistoryService.registrar(
-                    evento = "Cadastro do produto",
-                    detalhe = "Cadastro inicial"
-                )
-            else
-                HistoryService.registrar(
-                    evento = "Atualização do produto",
-                    detalhe = "Produto editado"
-                )
-        )
+        // 🔹 HISTÓRICO APENAS NO CADASTRO
+        if (novo) {
+            base.historico.add(
+                HistoryService.cadastro(base)
+            )
+        }
 
-        // 🔹 STATUS SANITÁRIO
         val statusAjustado = StatusRules.aplicarRegraSanitaria(base)
 
-        val final = base.copy(
-            status = statusAjustado
+        repo.salvar(
+            base.copy(status = statusAjustado)
         )
-
-        repo.salvar(final)
         carregar()
     }
 
-
+    // =========================
+    // APROVAÇÃO COMERCIAL
+    // =========================
     suspend fun aprovarComercial(
         produto: Produto,
-        precoAprovado: Double,
-        observacao: String? = null
+        precoAprovado: Double
     ) {
-        val atualizado = produto.copy(
-            precoAtual = precoAprovado,
-            status = StatusProduto.NORMAL
+        val itemHistorico = HistoryService.aprovacao(
+            produto = produto, // ainda com preço antigo
+            precoSugerido = produto.precoAtual ?: 0.0,
+            precoAprovado = precoAprovado
         )
 
-        atualizado.historico.add(
-            HistoryService.registrar(
-                evento = "Aprovação comercial",
-                detalhe = observacao ?: "Preço aprovado: R$ $precoAprovado",
-                preco = precoAprovado
-            )
+        val atualizado = produto.copy(
+            precoAtual = precoAprovado,
+            status = StatusProduto.NORMAL,
+            historico = (produto.historico + itemHistorico).toMutableList()
         )
 
         repo.salvar(atualizado)
         carregar()
     }
 
+
+    // =========================
+    // REJEIÇÃO COMERCIAL
+    // =========================
     suspend fun rejeitarComercial(
         produto: Produto,
         motivo: String? = null
     ) {
-        val atualizado = produto.copy(status = StatusProduto.NORMAL)
+        val historico = HistoryService.rejeicao(
+            produto = produto,
+            validade = produto.validadeAtual,
+            motivo = motivo
+        )
 
-        atualizado.historico.add(
-            HistoryService.registrar(
-                evento = "Rejeição comercial",
-                detalhe = motivo ?: "Preço não aprovado"
-            )
+        val atualizado = produto.copy(
+            status = StatusProduto.NORMAL,
+            historico = (produto.historico + historico).toMutableList()
+
         )
 
         repo.salvar(atualizado)
         carregar()
     }
 
+    // =========================
+    // REMOÇÃO
+    // =========================
     suspend fun remover(id: String) {
         repo.remover(id)
         carregar()
@@ -111,36 +108,26 @@ class ProductService(private val repo: ProductRepository) {
     suspend fun mudarStatus(produto: Produto, novo: StatusProduto) {
 
         val atualizado = when (novo) {
+            StatusProduto.VERIFICACAO_ESTOQUE ->
+                produto.copy(emVerificacaoEstoque = true)
 
-            // 🔹 VERIFICAÇÃO NÃO ALTERA STATUS
-            StatusProduto.VERIFICACAO_ESTOQUE -> {
-                produto.copy(
-                    emVerificacaoEstoque = true
-                )
-            }
-
-            // 🔹 QUALQUER OUTRO STATUS É PRINCIPAL
-            else -> {
-                produto.copy(
-                    status = novo
-                )
-            }
+            else ->
+                produto.copy(status = novo)
         }
 
         repo.salvar(atualizado)
         carregar()
     }
 
+    fun getProdutoById(id: String): Produto? =
+        _produtos.value.find { it.id == id }
 
-    fun getProdutoById(id: String): Produto? {
-        return _produtos.value.find { it.id == id }
-    }
-
-    // ✅ REGRA DE DUPLICIDADE (ESTAVA FALTANDO)
+    // =========================
+    // REGRA DE DUPLICIDADE
+    // =========================
     private suspend fun existeDuplicidade(novo: Produto): Boolean {
 
         val validade = novo.validadeAtual ?: return false
-
         val existentes = repo.carregar()
 
         return existentes.any { existente ->
@@ -160,4 +147,3 @@ class ProductService(private val repo: ProductRepository) {
         }
     }
 }
-

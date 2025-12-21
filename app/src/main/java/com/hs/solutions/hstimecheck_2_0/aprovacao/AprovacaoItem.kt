@@ -4,8 +4,8 @@ data class AprovacaoItem(
     val id: String,
     val descricao: String,
     val codigo: String,
-    val precoAtual: Double,
-    val precoSugerido: Double
+    var precoAtual: Double,
+    var precoSugerido: Double
 ) {
     val diferencaPercentual: Int
         get() {

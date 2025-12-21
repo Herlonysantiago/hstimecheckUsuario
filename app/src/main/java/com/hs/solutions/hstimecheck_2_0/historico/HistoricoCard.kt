@@ -6,41 +6,54 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-
 @Composable
 fun HistoricoCard(item: HistoricoViewItem) {
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .padding(vertical = 6.dp)
     ) {
         Column(Modifier.padding(12.dp)) {
 
+            // 🔹 TÍTULO
             Text(
-                item.evento,
-                fontWeight = FontWeight.Bold
+                text = item.titulo,
+                style = MaterialTheme.typography.titleMedium
             )
 
+            Spacer(Modifier.height(4.dp))
+
+            // 🔹 CÓDIGOS
             Text(
-                item.descricaoProduto,
-                style = MaterialTheme.typography.bodySmall
+                text = buildString {
+                    item.codigoInterno?.let { append("CI: $it  ") }
+                    item.codigoBarras?.let { append("CB: $it") }
+                },
+                style = MaterialTheme.typography.labelSmall
             )
 
-            Text(
-                "Código: ${item.codigoBarras}",
-                style = MaterialTheme.typography.bodySmall
-            )
-
-            item.detalhe?.let {
+            // 🔹 VALIDADE
+            item.validade?.let {
                 Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall
+                    text = "Validade: $it",
+                    style = MaterialTheme.typography.labelSmall
                 )
             }
 
+            Spacer(Modifier.height(6.dp))
+
+            // 🔹 DESCRIÇÃO
             Text(
-                item.dataEvento,
+                text = item.descricao,
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            // 🔹 DATA
+            Text(
+                text = item.dataEvento,
                 style = MaterialTheme.typography.labelSmall
             )
         }

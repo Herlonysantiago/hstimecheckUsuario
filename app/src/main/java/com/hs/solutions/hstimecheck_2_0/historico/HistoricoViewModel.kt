@@ -4,68 +4,72 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.hs.solutions.hstimecheck_2_0.core.ProductService
+import com.hs.solutions.hstimecheck_2_0.models.TipoEventoHistorico
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-// ================= MODELO DE VISUALIZAÇÃO =================
-
+// ================= UI MODEL =================
 data class HistoricoViewItem(
-    val produtoId: String,
-    val descricaoProduto: String,
-    val codigoBarras: String,
-    val dataEvento: String,
-    val evento: String,
-    val detalhe: String?
+    val titulo: String,
+    val descricao: String,
+    val codigoInterno: String?,
+    val codigoBarras: String?,
+    val validade: String?,
+    val dataEvento: String
 )
 
-// ================= VIEWMODEL =================
 
+
+
+// ================= VIEWMODEL =================
 class HistoricoViewModel(
     private val service: ProductService
 ) : ViewModel() {
 
     private val query = MutableStateFlow("")
-    private val filtroEvento = MutableStateFlow<String?>(null)
+    private val filtroEvento = MutableStateFlow<TipoEventoHistorico?>(null)
 
-    val historico: StateFlow<List<HistoricoViewItem>> =
-        combine(service.produtos, query, filtroEvento) { produtos, q, eventoFiltro ->
-
-            produtos.flatMap { produto ->
-                produto.historico.map { h ->
-                    HistoricoViewItem(
-                        produtoId = produto.id,
-                        descricaoProduto = produto.descricao,
-                        codigoBarras = produto.codigoBarras,
-                        dataEvento = h.dataEvento,
-                        evento = h.evento,
-                        detalhe = h.detalhe
-                    )
-                }
-            }
-                .filter {
-                    q.isBlank() ||
-                            it.descricaoProduto.contains(q, true) ||
-                            it.codigoBarras.contains(q) ||
-                            it.evento.contains(q, true)
-                }
-                .filter {
-                    eventoFiltro == null || it.evento == eventoFiltro
-                }
-                .sortedByDescending { it.dataEvento }
-
-        }.stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5_000),
-            emptyList()
-        )
 
     fun setQuery(texto: String) {
         query.value = texto
     }
 
-    fun setFiltroEvento(evento: String?) {
-        filtroEvento.value = evento
+    fun setFiltroEvento(tipo: TipoEventoHistorico?) {
+        filtroEvento.value = tipo
     }
+
+    val historico: StateFlow<List<HistoricoViewItem>> =
+        service.produtos
+            .map { produtos ->
+                produtos.flatMap { produto ->
+                    produto.historico.mapNotNull { h ->
+
+                        val tituloSeguro = when {
+                            !h.titulo.isNullOrBlank() -> h.titulo
+                            h.tipoEvento != null -> h.tipoEvento.name
+                            else -> null
+                        }
+
+                        // 🔒 SE NÃO CONSEGUIR GERAR TÍTULO, DESCARTA O ITEM
+                        tituloSeguro?.let {
+                            HistoricoViewItem(
+                                titulo = it,
+                                descricao = h.descricao ?: "",
+                                codigoInterno = h.codigoInterno,
+                                codigoBarras = h.codigoBarras,
+                                validade = h.validade,
+                                dataEvento = h.dataEvento
+                            )
+                        }
+                    }
+
+                }.sortedByDescending { it.dataEvento }
+            }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                emptyList()
+            )
 
     fun carregar() {
         viewModelScope.launch {
@@ -76,11 +80,3 @@ class HistoricoViewModel(
 
 // ================= FACTORY =================
 
-class HistoricoViewModelFactory(
-    private val service: ProductService
-) : ViewModelProvider.Factory {
-
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return HistoricoViewModel(service) as T
-    }
-}

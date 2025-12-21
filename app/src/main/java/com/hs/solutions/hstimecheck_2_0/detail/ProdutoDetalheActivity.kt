@@ -14,7 +14,10 @@ import com.hs.solutions.hstimecheck_2_0.core.AppContainer
 import android.content.Intent
 import android.util.Log
 import com.hs.solutions.hstimecheck_2_0.ui.FullImageActivity   // ← IMPORT NECESSÁRIO
-
+import com.hs.solutions.hstimecheck_2_0.models.TipoEventoHistorico
+import com.hs.solutions.hstimecheck_2_0.core.HistoryService
+import com.hs.solutions.hstimecheck_2_0.models.*
+import com.hs.solutions.hstimecheck_2_0.historico.*
 class ProdutoDetalheActivity : AppCompatActivity() {
 
     private var produto: Produto? = null
@@ -74,7 +77,8 @@ class ProdutoDetalheActivity : AppCompatActivity() {
         tvQuantidade.text = "Quantidade: ${p.quantidadeAtual ?: "—"}"
         tvPreco.text = "Preço: R$ ${p.precoAtual ?: 0.0}"
 
-        val url = p.fotoUrl ?: "https://images.openfoodfacts.org/images/products/${p.codigoBarras}/front_pt.400.jpg"
+        val url = p.fotoUrl
+            ?: "https://images.openfoodfacts.org/images/products/${p.codigoBarras}/front_pt.400.jpg"
 
         Glide.with(this)
             .load(url)
@@ -155,27 +159,37 @@ class ProdutoDetalheActivity : AppCompatActivity() {
 
     private fun alterarStatus(novoStatus: StatusProduto) {
         val p = produto ?: return
-        val antigo = p.status
+        val statusAntigo = p.status
+
+        if (statusAntigo == novoStatus) return
 
         p.status = novoStatus
-        adicionarHistorico("Status alterado", "De $antigo para $novoStatus")
 
-        Toast.makeText(this, "Status atualizado", Toast.LENGTH_SHORT).show()
-        preencherDados()
+        val historicoItem = when (novoStatus) {
+
+            StatusProduto.AGUARDANDO_APROVACAO ->
+                HistoryService.envioAprovacao(
+                    produto = p,
+                    validade = p.validadeAtual,
+                    precoAtual = p.precoAtual ?: 0.0,
+                    precoSugerido = p.precoAtual ?: 0.0
+                )
+
+            // Para estes status, NÃO gera histórico automático
+            StatusProduto.TRABALHANDO_PRECO,
+            StatusProduto.VERIFICACAO_ESTOQUE ->
+                null
+
+            else ->
+                null
+        }
+
+        historicoItem?.let {
+            p.historico.add(it)
+        }
     }
 
-    private fun adicionarHistorico(evento: String, detalhe: String?) {
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-        val data = sdf.format(Date())
 
-        produto?.historico?.add(
-            com.hs.solutions.hstimecheck_2_0.models.HistoricoItem(
-                dataEvento = data,
-                evento = evento,
-                detalhe = detalhe,
-                quantidade = produto?.quantidadeAtual,
-                preco = produto?.precoAtual
-            )
-        )
-    }
 }
+
+

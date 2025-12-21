@@ -12,13 +12,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-
+import com.hs.solutions.hstimecheck_2_0.models.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaHistoricoRobusto(viewModel: HistoricoViewModel) {
 
     val lista by viewModel.historico.collectAsState()
     var busca by remember { mutableStateOf("") }
+
 
     LaunchedEffect(Unit) {
         viewModel.carregar()
@@ -65,31 +66,74 @@ fun TelaHistoricoRobusto(viewModel: HistoricoViewModel) {
                     viewModel.setFiltroEvento(null)
                 }
                 FiltroChip("Cadastro") {
-                    viewModel.setFiltroEvento("Cadastro do produto")
+                    viewModel.setFiltroEvento(TipoEventoHistorico.CADASTRO_PRODUTO)
                 }
                 FiltroChip("Atualização") {
-                    viewModel.setFiltroEvento("Atualização do produto")
+                    viewModel.setFiltroEvento(TipoEventoHistorico.EDICAO_PRODUTO)
                 }
                 FiltroChip("Aprovação") {
-                    viewModel.setFiltroEvento("Aprovação comercial")
+                    viewModel.setFiltroEvento(TipoEventoHistorico.APROVACAO_COMERCIAL)
+                }
+                FiltroChip("Preço") {
+                    viewModel.setFiltroEvento(TipoEventoHistorico.TRABALHANDO_PRECO)
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
+            // 📜 LISTA
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(8.dp)
+            ) {
+                items(lista) { item ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Column(Modifier.padding(12.dp)) {
 
-            // 📋 LISTA
-            if (lista.isEmpty()) {
-                Text(
-                    text = "Nenhum histórico encontrado",
-                    modifier = Modifier.padding(16.dp)
-                )
-            } else {
-                LazyColumn {
-                    items(lista) { item ->
-                        HistoricoCard(item)
+                            // 🔹 TÍTULO DO EVENTO
+                            Text(
+                                text = item.titulo,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(Modifier.height(4.dp))
+
+                            // 🔹 CÓDIGOS
+                            Text(
+                                text = buildString {
+                                    item.codigoInterno?.let { append("CI: $it  ") }
+                                    item.codigoBarras?.let { append("CB: $it") }
+                                },
+                                style = MaterialTheme.typography.labelSmall
+                            )
+
+                            // 🔹 VALIDADE
+                            item.validade?.let {
+                                Text(
+                                    text = "Validade: $it",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+
+                            Spacer(Modifier.height(6.dp))
+
+                            // 🔹 DESCRIÇÃO DO EVENTO
+                            Text(
+                                text = item.descricao
+                            )
+
+                            Spacer(Modifier.height(6.dp))
+
+                            // 🔹 DATA
+                            Text(
+                                text = item.dataEvento,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     }
                 }
-            }
-        }
+       }   }
     }
 }

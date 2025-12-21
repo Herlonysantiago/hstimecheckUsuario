@@ -1,0 +1,20 @@
+package com.hs.solutions.hstimecheck_2_0.models
+
+enum class TipoEventoHistorico {
+    CADASTRO_PRODUTO,
+
+    VALIDADE_ADICIONADA,
+    VALIDADE_REMOVIDA,
+
+    AJUSTE_ESTOQUE,
+    VENDA,
+    CORRECAO_ESTOQUE,
+    TRABALHANDO_PRECO,
+
+    ENVIO_APROVACAO_COMERCIAL,
+    APROVACAO_COMERCIAL,
+    REJEICAO_COMERCIAL,
+
+    EDICAO_PRODUTO,
+    EXCLUSAO_PRODUTO
+}
