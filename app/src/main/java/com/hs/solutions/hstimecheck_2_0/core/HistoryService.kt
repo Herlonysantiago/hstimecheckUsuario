@@ -77,6 +77,23 @@ object HistoryService {
                 estoqueUnAtual = unDepois
             )
         }
+    fun envioVerificacaoEstoque(produto: Produto): HistoricoItem =
+        base(
+            produto,
+            produto.validadeAtual,
+            TipoEventoHistorico.CORRECAO_ESTOQUE,
+            "Envio para verificação de estoque",
+            "Produto enviado para conferência de estoque"
+        ) { this }
+
+    fun envioQueimaPreco(produto: Produto): HistoricoItem =
+        base(
+            produto,
+            produto.validadeAtual,
+            TipoEventoHistorico.TRABALHANDO_PRECO,
+            "Envio para queima de estoque",
+            "Produto enviado para trabalhar preço"
+        ) { this }
 
     // =========================
     // VENDA
@@ -183,4 +200,25 @@ object HistoryService {
             "Produto excluído",
             "Produto removido do sistema"
         ) { this }
+    // =========================
+// VERIFICAÇÃO DE ESTOQUE
+// =========================
+    fun verificacaoEstoque(
+        produto: Produto,
+        quantidadeAnterior: Int,
+        quantidadeNova: Int
+    ): HistoricoItem =
+        base(
+            produto = produto,
+            validade = produto.validadeAtual,
+            tipo = TipoEventoHistorico.AJUSTE_ESTOQUE,
+            titulo = "Verificação de estoque",
+            descricao = "Conferência de estoque realizada"
+        ) {
+            copy(
+                estoqueUnAnterior = quantidadeAnterior,
+                estoqueUnAtual = quantidadeNova
+            )
+        }
+
 }

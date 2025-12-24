@@ -5,7 +5,7 @@ import com.hs.solutions.hstimecheck_2_0.models.StatusProduto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-
+import com.hs.solutions.hstimecheck_2_0.estoque.*
 class ProductService(private val repo: ProductRepository) {
 
     private val _produtos = MutableStateFlow<List<Produto>>(emptyList())
@@ -107,17 +107,52 @@ class ProductService(private val repo: ProductRepository) {
 
     suspend fun mudarStatus(produto: Produto, novo: StatusProduto) {
 
-        val atualizado = when (novo) {
-            StatusProduto.VERIFICACAO_ESTOQUE ->
-                produto.copy(emVerificacaoEstoque = true)
+        val historicoItem = when (novo) {
 
+            StatusProduto.AGUARDANDO_APROVACAO ->
+                HistoryService.envioAprovacao(
+                    produto = produto,
+                    validade = produto.validadeAtual,
+                    precoAtual = produto.precoAtual ?: 0.0,
+                    precoSugerido = produto.precoAtual ?: 0.0
+                )
+
+            StatusProduto.TRABALHANDO_PRECO ->
+                HistoryService.envioQueimaPreco(produto)
+
+            StatusProduto.VERIFICACAO_ESTOQUE ->
+                HistoryService.envioVerificacaoEstoque(produto)
+
+            else -> null
+        }
+
+        val atualizado = when (novo) {
+
+            // 🔹 NÃO muda status — apenas marca flag
+            StatusProduto.VERIFICACAO_ESTOQUE ->
+                produto.copy(
+                    emVerificacaoEstoque = true,
+                    historico = if (historicoItem != null)
+                        (produto.historico + historicoItem).toMutableList()
+                    else
+                        produto.historico
+                )
+
+            // 🔹 Todos os outros mudam status normalmente
             else ->
-                produto.copy(status = novo)
+                produto.copy(
+                    status = novo,
+                    historico = if (historicoItem != null)
+                        (produto.historico + historicoItem).toMutableList()
+                    else
+                        produto.historico
+                )
         }
 
         repo.salvar(atualizado)
         carregar()
     }
+
 
     fun getProdutoById(id: String): Produto? =
         _produtos.value.find { it.id == id }
@@ -146,4 +181,24 @@ class ProductService(private val repo: ProductRepository) {
             codigoBarrasIgual || codigoInternoIgual
         }
     }
+    suspend fun atualizarQuantidade(
+        produto: Produto,
+        novaQuantidade: Int
+    ) {
+        val historico = HistoryService.verificacaoEstoque(
+            produto = produto,
+            quantidadeAnterior = produto.quantidadeAtual ?: 0,
+            quantidadeNova = novaQuantidade
+        )
+
+        val atualizado = produto.copy(
+            quantidadeAtual = novaQuantidade,
+            historico = (produto.historico + historico).toMutableList()
+        )
+
+        repo.salvar(atualizado)
+        carregar()
+    }
+
+
 }

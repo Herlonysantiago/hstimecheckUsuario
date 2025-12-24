@@ -51,6 +51,10 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import android.net.Uri
+import com.hs.solutions.hstimecheck_2_0.estoque.VerificacaoEstoqueActivity
+import com.hs.solutions.hstimecheck_2_0.sobre.SobreActivity
+import com.hs.solutions.hstimecheck_2_0.vencendo.ProdutosVencendoActivity
+
 // =======================================================
 // ACTIVITY PRINCIPAL (ÚNICO onCreate — CORRETO)
 // =======================================================
@@ -155,7 +159,7 @@ fun DrawerMenu(
     onImportacao: () -> Unit = {},
     onExportacao: () -> Unit = {},
     onAprovacao: () -> Unit = {},
-    onGerencial: () -> Unit = {},
+    onVencidos: () -> Unit = {},
     onQueimaPreco: () -> Unit = {},
     onEstoque: () -> Unit = {},
     onVencimentos: () -> Unit = {},
@@ -175,13 +179,6 @@ fun DrawerMenu(
             onClick = onDashboard
         )
 
-        NavigationDrawerItem(
-            label = { Text("Produtos") },
-            icon = { Icon(Icons.Default.Inventory, null) },
-            selected = false,
-            onClick = onProdutos
-        )
-
         SectionHeader("FLUXOS")
 
         NavigationDrawerItem(
@@ -191,12 +188,6 @@ fun DrawerMenu(
             onClick = onAprovacao
         )
 
-        NavigationDrawerItem(
-            label = { Text("Gerencial (Pendências)") },
-            icon = { Icon(Icons.Default.FactCheck, null) },
-            selected = false,
-            onClick = onGerencial
-        )
 
         NavigationDrawerItem(
             label = { Text("Trabalhando Preço / Queima de Estoque") },
@@ -213,12 +204,17 @@ fun DrawerMenu(
         )
 
         NavigationDrawerItem(
-            label = { Text("Produtos Vencendo / Vencidos") },
+            label = { Text("Produtos Vencendo") },
             icon = { Icon(Icons.Default.AccessTime, null) },
             selected = false,
             onClick = onVencimentos
         )
-
+        NavigationDrawerItem(
+            label = { Text("Produtos Vencidos") },
+            icon = { Icon(Icons.Default.AccessTime, null) },
+            selected = false,
+            onClick = onVencidos
+        )
         SectionHeader("DADOS")
 
         NavigationDrawerItem(
@@ -320,6 +316,33 @@ fun TelaPrincipal(service: ProductService) {
         drawerState = drawerState,
         drawerContent = {
             DrawerMenu(
+                onDashboard = {
+                    context.startActivity(
+                        Intent( context, PainelOperacionalActivity::class.java)
+                    )
+                },
+                onEstoque = {
+                    context.startActivity(
+                        Intent(context, VerificacaoEstoqueActivity::class.java)
+                    )
+                },
+                    onSobre = {
+                        context.startActivity(
+                            Intent(context, SobreActivity::class.java)
+                        )
+                    },
+                        onVencimentos = {
+                    context.startActivity(
+                        Intent(context, ProdutosVencendoActivity::class.java)
+                            .putExtra("modo", "VENCENDO")
+                    )
+                },
+                onVencidos = {
+                    context.startActivity(
+                        Intent(context, ProdutosVencendoActivity::class.java)
+                            .putExtra("modo", "VENCIDOS")
+                    )
+                },
                 onAprovacao = {
                     context.startActivity(
                         Intent(context, AprovacaoComercialActivity::class.java)
@@ -336,6 +359,7 @@ fun TelaPrincipal(service: ProductService) {
                     )
                 }
             )
+
         }
     ) {
 
@@ -394,20 +418,27 @@ fun TelaPrincipal(service: ProductService) {
 
                             IconButton(onClick = {
                                 scope.launch {
-                                    selectedIds.forEach { id ->
-                                        produtos.find { it.id == id }?.let {
-                                            service.mudarStatus(
-                                                it,
-                                                StatusProduto.VERIFICACAO_ESTOQUE
-                                            )
-                                        }
-                                    }
+
+                                    // pega o primeiro produto selecionado
+                                    val produto = produtos.firstOrNull { it.id in selectedIds }
+                                        ?: return@launch
+
+                                    // marca como em verificação (flag)
+                                    service.mudarStatus(produto, StatusProduto.VERIFICACAO_ESTOQUE)
+
                                     selectionMode = false
                                     selectedIds.clear()
+
+                                    // 👉 ABRE A TELA DE VERIFICAÇÃO
+                                    context.startActivity(
+                                        Intent(context, VerificacaoEstoqueActivity::class.java)
+                                            .putExtra("produto_id", produto.id)
+                                    )
                                 }
                             }) {
                                 Icon(Icons.Default.Inventory, null)
                             }
+
                         }
                     )
                 } else {
@@ -525,95 +556,6 @@ fun TelaPrincipal(service: ProductService) {
     }
 }
 
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TelaHistoricoGeral(service: ProductService) {
-
-    val produtos by service.produtos.collectAsState()
-
-    val historicoGeral = produtos
-        .flatMap { p -> p.historico.map { h -> p.descricao to h } }
-        .sortedByDescending { it.second.dataEvento }
-
-    LaunchedEffect(Unit) { service.carregar() }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Histórico Geral") })
-        }
-    ) { padding ->
-
-        LazyColumn(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-        ) {
-
-            if (historicoGeral.isEmpty()) {
-                item {
-                    Text(
-                        "Nenhum histórico registrado",
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
-            }
-
-            items(historicoGeral) { (descricao, item) ->
-                Card(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp)
-                ) {
-                    Column(Modifier.padding(12.dp)) {
-
-                        // 🔹 TÍTULO DO EVENTO
-                        Text(
-                            text = item.titulo,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(Modifier.height(4.dp))
-
-                        // 🔹 CÓDIGOS
-                        Text(
-                            text = buildString {
-                                item.codigoInterno?.let { append("CI: $it  ") }
-                                item.codigoBarras?.let { append("CB: $it") }
-                            },
-                            style = MaterialTheme.typography.labelSmall
-                        )
-
-                        // 🔹 VALIDADE
-                        item.validade?.let {
-                            Text(
-                                text = "Validade: $it",
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-
-                        Spacer(Modifier.height(6.dp))
-
-                        // 🔹 DESCRIÇÃO
-                        Text(
-                            text = item.descricao,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-
-                        Spacer(Modifier.height(6.dp))
-
-                        // 🔹 DATA
-                        Text(
-                            text = item.dataEvento,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-
-                }
-            }
-        }
-    }
-}
 
 // =======================================================
 // ITEM DO PRODUTO (COMPLETO)
