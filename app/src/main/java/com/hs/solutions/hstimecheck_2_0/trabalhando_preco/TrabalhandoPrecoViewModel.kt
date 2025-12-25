@@ -35,4 +35,18 @@ class TrabalhandoPrecoViewModel : ViewModel() {
         // Status NÃO muda
         // Histórico será ligado depois
     }
+
+    fun enviarParaClientes(produtos: List<Produto>) {
+        if (produtos.isEmpty()) return
+
+        val mensagem = produtos.joinToString("\n\n") { produto ->
+            """
+        Produto: ${produto.codigoInterno ?: "-"} - ${produto.descricao}
+        Código de barras: ${produto.codigoBarras ?: "-"}
+        Validade: ${produto.validadeAtual ?: "-"}
+        Estoque: ${produto.quantidadeAtual ?: 0}
+        """.trimIndent()
+        }
+    }
+
 }

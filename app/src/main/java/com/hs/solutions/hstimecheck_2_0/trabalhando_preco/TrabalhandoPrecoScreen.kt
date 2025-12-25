@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +18,50 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.hs.solutions.hstimecheck_2_0.models.Produto
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MenuTrabalhandoPreco(
+    produto: Produto,
+    onDismiss: () -> Unit,
+    onWhatsapp: () -> Unit,
+    onPrecoNegociacao: () -> Unit,
+    onEnviarAprovacao: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+
+            Text(
+                text = produto.descricao,
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            ListItem(
+                headlineContent = { Text("Enviar WhatsApp") },
+                modifier = Modifier.clickable { onWhatsapp() }
+            )
+
+            ListItem(
+                headlineContent = { Text("Preço em negociação") },
+                modifier = Modifier.clickable { onPrecoNegociacao() }
+            )
+
+            ListItem(
+                headlineContent = { Text("Enviar para aprovação") },
+                modifier = Modifier.clickable { onEnviarAprovacao() }
+            )
+
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,34 +115,62 @@ fun TrabalhandoPrecoScreen(
                 },
                 actions = {
                     if (modoSelecao) {
-                        IconButton(onClick = {
-                            val msg = buildString {
-                                append("Produto Criticos P/ Melhorar preço:\n\n")
-                                produtosSelecionados.forEach {
-                                    append("- ${it.descricao}\n" +
-                                            "         ${it.codigoInterno}\n"+
-                                            "         Validade : ${it.validadeAtual}\n"+
-                                            "         Estoque :  ${it.quantidadeAtual}\n"
 
-
-                                    )
-
+                        // 🛒 Enviar para CLIENTES (WhatsApp em lote)
+                        IconButton(
+                            onClick = {
+                                val msgClientes = buildString {
+                                    append("📢 OFERTAS DISPONÍVEIS\n\n")
+                                    produtosSelecionados.forEach {
+                                        append(
+                                            "• ${it.descricao}\n" +
+                                                    "  Validade: ${it.validadeAtual ?: "-"}\n"+
+                                                    "  Preço : ${it.precoAtual?:"-"}\n"
+                                        )
+                                    }
                                 }
-                                append("— — — — — — — — — —\n")
-                                append("📱 Gerado pelo sistema HS TimeCheck\n")
+                                enviarWhatsapp(msgClientes)
+                                produtosSelecionados.clear()
                             }
-                            enviarWhatsapp(msg)
-                        }) {
+                        ) {
+                            Icon(
+                                Icons.Default.ShoppingCart,
+                                contentDescription = "Enviar para clientes"
+                            )
+                        }
+
+                        // 📲 WhatsApp Gerente / Comprador
+                        IconButton(
+                            onClick = {
+                                val msg = buildString {
+                                    append("⚠️ PRODUTOS PARA MELHORAR PREÇO\n\n")
+                                    produtosSelecionados.forEach {
+                                        append(
+                                            "• ${it.descricao}\n" +
+                                                    "  Código: ${it.codigoInterno ?: "-"}\n" +
+                                                    "  Validade: ${it.validadeAtual ?: "-"}\n" +
+                                                    "  Estoque: ${it.quantidadeAtual ?: 0}\n\n"
+                                        )
+                                    }
+                                    append("📱 HS TimeCheck\n")
+                                }
+                                enviarWhatsapp(msg)
+                                produtosSelecionados.clear()
+                            }
+                        ) {
                             Icon(Icons.Default.Send, contentDescription = "WhatsApp")
                         }
 
-                        IconButton(onClick = {
-                            produtosSelecionados.forEach {
-                                viewModel.enviarParaComprador(it)
+                        // ✅ Enviar para aprovação (comprador)
+                        IconButton(
+                            onClick = {
+                                produtosSelecionados.forEach {
+                                    viewModel.enviarParaComprador(it)
+                                }
+                                produtosSelecionados.clear()
                             }
-                            produtosSelecionados.clear()
-                        }) {
-                            Icon(Icons.Default.Check, contentDescription = "Enviar")
+                        ) {
+                            Icon(Icons.Default.Check, contentDescription = "Enviar aprovação")
                         }
                     }
                 }
@@ -133,6 +206,7 @@ fun TrabalhandoPrecoScreen(
         }
     }
 
+    // 🔽 Menu individual
     produtoMenu?.let { produto ->
         MenuTrabalhandoPreco(
             produto = produto,
@@ -140,17 +214,15 @@ fun TrabalhandoPrecoScreen(
             onWhatsapp = {
                 enviarWhatsapp(
                     """
-                 Produto: ${produto.codigoInterno ?: "-"} - ${produto.descricao}
-                 Código de barras: ${produto.codigoBarras ?: "-"}
-                 Validade: ${produto.validadeAtual ?: "-"}
-                 Estoque atual: ${produto.quantidadeAtual ?: 0}
+                    Produto: ${produto.codigoInterno ?: "-"} - ${produto.descricao}
+                    Validade: ${produto.validadeAtual ?: "-"}
+                    Estoque: ${produto.quantidadeAtual ?: 0}
 
-                 Pode verificar melhor preço?
-                 """.trimIndent()
+                    Pode verificar melhor preço?
+                    """.trimIndent()
                 )
                 produtoMenu = null
             },
-
             onPrecoNegociacao = {
                 viewModel.marcarPrecoEmNegociacao(produto, null)
                 produtoMenu = null
@@ -160,38 +232,5 @@ fun TrabalhandoPrecoScreen(
                 produtoMenu = null
             }
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun MenuTrabalhandoPreco(
-    produto: Produto,
-    onDismiss: () -> Unit,
-    onWhatsapp: () -> Unit,
-    onPrecoNegociacao: () -> Unit,
-    onEnviarAprovacao: () -> Unit
-) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.padding(16.dp)) {
-
-            Text(produto.descricao, style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(16.dp))
-
-            ListItem(
-                headlineContent = { Text("Enviar WhatsApp") },
-                modifier = Modifier.clickable { onWhatsapp() }
-            )
-
-            ListItem(
-                headlineContent = { Text("Preço em negociação") },
-                modifier = Modifier.clickable { onPrecoNegociacao() }
-            )
-
-            ListItem(
-                headlineContent = { Text("Enviar para aprovação") },
-                modifier = Modifier.clickable { onEnviarAprovacao() }
-            )
-        }
     }
 }
