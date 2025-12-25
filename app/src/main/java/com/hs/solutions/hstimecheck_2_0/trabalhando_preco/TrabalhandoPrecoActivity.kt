@@ -21,4 +21,5 @@ class TrabalhandoPrecoActivity : ComponentActivity() {
             }
         }
     }
+
 }

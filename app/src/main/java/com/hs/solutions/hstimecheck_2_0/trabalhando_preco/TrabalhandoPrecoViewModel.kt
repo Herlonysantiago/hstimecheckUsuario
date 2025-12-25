@@ -30,4 +30,9 @@ class TrabalhandoPrecoViewModel : ViewModel() {
             carregar()
         }
     }
+
+    fun enviarParaComprador(produto: Produto) {
+        // Status NÃO muda
+        // Histórico será ligado depois
+    }
 }
