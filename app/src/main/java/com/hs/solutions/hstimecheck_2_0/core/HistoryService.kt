@@ -220,5 +220,45 @@ object HistoryService {
                 estoqueUnAtual = quantidadeNova
             )
         }
+    fun precoEmNegociacao(
+        produto: Produto,
+        motivo: String?
+    ): HistoricoItem {
+
+        return HistoricoItem(
+            // Identificação
+            produtoId = produto.id,
+            codigoInterno = produto.codigoInterno,
+            codigoBarras = produto.codigoBarras,
+            descricaoProduto = produto.descricao,
+
+            // Validade
+            validade = produto.validadeAtual,
+
+            // Evento
+            tipoEvento = TipoEventoHistorico.PRECO_EM_NEGOCIACAO,
+            titulo = "Preço em negociação",
+            descricao = motivo ?: "Preço atual não atende, negociação em andamento",
+            dataEvento = System.currentTimeMillis().toString(),
+
+            // Estoque (não se aplica)
+            estoqueCxAnterior = null,
+            estoqueCxAtual = null,
+            estoqueUnAnterior = null,
+            estoqueUnAtual = null,
+            estoqueTotalAnterior = null,
+            estoqueTotalAtual = null,
+
+            // Preço
+            precoAnterior = produto.precoAtual,
+            precoAtual = produto.precoAtual,
+            precoSugerido = null,
+            precoAprovado = null,
+
+            // Auditoria
+            observacao = "Solicitação registrada na tela Trabalhando Preço"
+        )
+    }
+
 
 }

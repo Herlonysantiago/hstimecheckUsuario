@@ -200,5 +200,20 @@ class ProductService(private val repo: ProductRepository) {
         carregar()
     }
 
+    suspend fun marcarPrecoEmNegociacao(produto: Produto, motivo: String? = null) {
+
+        val historico = HistoryService.precoEmNegociacao(
+            produto = produto,
+            motivo = motivo
+        )
+
+        val atualizado = produto.copy(
+            precoEmNegociacao = true,
+            historico = (produto.historico + historico).toMutableList()
+        )
+
+        repo.salvar(atualizado)
+        carregar()
+    }
 
 }

@@ -16,5 +16,6 @@ enum class TipoEventoHistorico {
     REJEICAO_COMERCIAL,
 
     EDICAO_PRODUTO,
-    EXCLUSAO_PRODUTO
+    EXCLUSAO_PRODUTO,
+    PRECO_EM_NEGOCIACAO
 }

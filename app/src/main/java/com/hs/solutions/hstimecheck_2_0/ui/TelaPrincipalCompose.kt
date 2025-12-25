@@ -53,6 +53,8 @@ import java.util.*
 import android.net.Uri
 import com.hs.solutions.hstimecheck_2_0.estoque.VerificacaoEstoqueActivity
 import com.hs.solutions.hstimecheck_2_0.sobre.SobreActivity
+import com.hs.solutions.hstimecheck_2_0.trabalhando_preco.TrabalhandoPrecoActivity
+import com.hs.solutions.hstimecheck_2_0.trabalhando_preco.TrabalhandoPrecoScreen
 import com.hs.solutions.hstimecheck_2_0.vencendo.ProdutosVencendoActivity
 
 // =======================================================
@@ -316,6 +318,11 @@ fun TelaPrincipal(service: ProductService) {
         drawerState = drawerState,
         drawerContent = {
             DrawerMenu(
+                onQueimaPreco = {
+                    context.startActivity(
+                        Intent(context, TrabalhandoPrecoActivity::class.java)
+                    )
+                },
                 onDashboard = {
                     context.startActivity(
                         Intent( context, PainelOperacionalActivity::class.java)
@@ -357,7 +364,8 @@ fun TelaPrincipal(service: ProductService) {
                     context.startActivity(
                         Intent(context, HistoricoGeralActivity::class.java)
                     )
-                }
+                },
+
             )
 
         }
