@@ -16,11 +16,11 @@ data class Produto(
     var emVerificacaoEstoque: Boolean = false,
     var precoEmNegociacao: Boolean = false,
 
-
-    // ➜ Campo adicionado conforme sua escolha (OPÇÃO B)
     var vendaDia: Int = 0,
     var fotoUrl: String? = null,
-    var fotpLocal: String?= null,
+    var fotpLocal: String? = null,
+
     val validades: MutableList<ValidadeItem> = mutableListOf(),
     val historico: MutableList<HistoricoItem> = mutableListOf()
 )
+

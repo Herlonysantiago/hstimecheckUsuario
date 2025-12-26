@@ -24,6 +24,7 @@ import com.hs.solutions.hstimecheck_2_0.scanner.ScannerActivity
 import kotlinx.coroutines.*
 import java.io.File
 import java.util.*
+import com.hs.solutions.hstimecheck_2_0.models.TipoEventoHistorico
 
 class CadastroProdutoActivity : AppCompatActivity() {
 
@@ -321,9 +322,11 @@ class CadastroProdutoActivity : AppCompatActivity() {
             quantidadePorCaixa = qpc,
             validadeAtual = converterData(edtValidade.text.toString()),
             precoAtual = edtPreco.text.toString().toDoubleOrNull(),
-            status = StatusProduto.NORMAL,
-            fotoUrl = produtoFotoUrl
+            status = StatusProduto.NORMAL, // será ajustado pelo ProductService
+            fotoUrl = produtoFotoUrl,
+            historico = mutableListOf()
         )
+
 
         scope.launch {
             withContext(Dispatchers.IO) {

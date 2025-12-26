@@ -7,18 +7,25 @@ import java.time.temporal.ChronoUnit
 
 object StatusRules {
 
-    var diasVencendo = 7  // configurável
+    var diasVencendo = 7 // configurável
 
     fun aplicarRegraSanitaria(produto: Produto): StatusProduto {
-        val validade = produto.validadeAtual ?: return produto.status
+        val validadeStr = produto.validadeAtual ?: return produto.status
 
-        val dias = ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(validade))
+        return try {
+            val validade = LocalDate.parse(validadeStr)
+            val hoje = LocalDate.now()
+            val dias = ChronoUnit.DAYS.between(hoje, validade)
 
-        return when {
-            dias < 0 -> StatusProduto.VENCENDO // vencido (visual sanitário)
-            dias == 0L -> StatusProduto.VENCENDO
-            dias in 1..diasVencendo -> StatusProduto.VENCENDO
-            else -> produto.status
+            when {
+                dias < 0 -> StatusProduto.VENCIDO
+                dias == 0L -> StatusProduto.VENCENDO
+                dias in 1..diasVencendo -> StatusProduto.VENCENDO
+                else -> StatusProduto.NORMAL
+            }
+        } catch (_: Exception) {
+            produto.status // fallback seguro
         }
     }
 }
+

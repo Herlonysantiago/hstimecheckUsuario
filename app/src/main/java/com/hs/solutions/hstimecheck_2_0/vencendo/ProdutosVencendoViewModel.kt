@@ -68,8 +68,9 @@ class ProdutosVencendoViewModel : ViewModel() {
 
     fun excluirValidade(produto: Produto) {
         viewModelScope.launch {
-            productService.remover(produto.id)
+            productService.removerValidade(produto)
             carregar()
         }
     }
+
 }

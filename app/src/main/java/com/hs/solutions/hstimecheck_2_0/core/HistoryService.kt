@@ -259,6 +259,14 @@ object HistoryService {
             observacao = "Solicitação registrada na tela Trabalhando Preço"
         )
     }
+    fun validadeRemovida(produto: Produto): HistoricoItem =
+        base(
+            produto = produto,
+            validade = produto.validadeAtual,
+            tipo = TipoEventoHistorico.VALIDADE_REMOVIDA,
+            titulo = "Validade removida",
+            descricao = "Validade excluída manualmente"
+        ) { this }
 
 
 }

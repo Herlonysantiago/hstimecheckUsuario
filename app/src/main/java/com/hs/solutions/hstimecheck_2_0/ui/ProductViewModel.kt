@@ -41,15 +41,24 @@ class ProductViewModel(
         }
     }
 
-    // -------------------- ADICIONAR PRODUTO (scanner) --------------------
-    fun adicionarProduto(codigo: String) {
-        viewModelScope.launch {
-            val novo = Produto(
-                codigoBarras = codigo,
-                descricao = "Produto via scanner",
-                quantidadeAtual = 1
-            )
-            service.inserirOuAtualizar(novo)
-        }
-    }
+//    fun adicionarProduto(codigo: String) {
+//        viewModelScope.launch {
+//            val novo = Produto(
+//                id = UUID.randomUUID().toString(),
+//                codigoBarras = codigo,
+//                codigoInterno = null,
+//                descricao = "Produto via scanner",
+//                quantidadeAtual = 1,
+//                quantidadePorCaixa = null,
+//                validadeAtual = null,
+//                precoAtual = null,
+//                status = StatusProduto.NORMAL,
+//                fotoUrl = null,
+//                historico = mutableListOf()
+//            )
+//
+//            service.inserirOuAtualizar(novo)
+//        }
+//    }
+
 }

@@ -49,6 +49,20 @@ class ProductService(private val repo: ProductRepository) {
         )
         carregar()
     }
+    suspend fun removerValidade(produto: Produto) {
+
+        val historico = HistoryService.validadeRemovida(produto)
+
+        val atualizado = produto.copy(
+            validadeAtual = null,
+            status = StatusProduto.NORMAL,
+            historico = (produto.historico + historico).toMutableList()
+        )
+
+        repo.salvar(atualizado)
+        carregar()
+    }
+
 
     // =========================
     // APROVAÇÃO COMERCIAL
