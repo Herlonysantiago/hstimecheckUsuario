@@ -72,20 +72,21 @@ class ProductService(private val repo: ProductRepository) {
         precoAprovado: Double
     ) {
         val itemHistorico = HistoryService.aprovacao(
-            produto = produto, // ainda com preço antigo
+            produto = produto,
             precoSugerido = produto.precoAtual ?: 0.0,
             precoAprovado = precoAprovado
         )
 
         val atualizado = produto.copy(
             precoAtual = precoAprovado,
-            status = StatusProduto.NORMAL,
+            status = StatusProduto.TRABALHANDO_PRECO,
             historico = (produto.historico + itemHistorico).toMutableList()
         )
 
         repo.salvar(atualizado)
         carregar()
     }
+
 
 
     // =========================
