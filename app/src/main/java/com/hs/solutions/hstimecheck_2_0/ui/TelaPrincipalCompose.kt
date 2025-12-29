@@ -56,6 +56,7 @@ import com.hs.solutions.hstimecheck_2_0.sobre.SobreActivity
 import com.hs.solutions.hstimecheck_2_0.trabalhando_preco.TrabalhandoPrecoActivity
 import com.hs.solutions.hstimecheck_2_0.trabalhando_preco.TrabalhandoPrecoScreen
 import com.hs.solutions.hstimecheck_2_0.vencendo.ProdutosVencendoActivity
+import com.hs.solutions.hstimecheck_2_0.utils.enviarProdutos
 
 // =======================================================
 // ACTIVITY PRINCIPAL (ÚNICO onCreate — CORRETO)
@@ -390,6 +391,7 @@ fun TelaPrincipal(service: ProductService) {
                         },
                         actions = {
 
+                            // 👍 APROVAÇÃO
                             IconButton(onClick = {
                                 scope.launch {
                                     selectedIds.forEach { id ->
@@ -407,6 +409,7 @@ fun TelaPrincipal(service: ProductService) {
                                 Icon(Icons.Default.ThumbUp, null)
                             }
 
+                            // 🔥 TRABALHANDO PREÇO
                             IconButton(onClick = {
                                 scope.launch {
                                     selectedIds.forEach { id ->
@@ -424,20 +427,17 @@ fun TelaPrincipal(service: ProductService) {
                                 Icon(Icons.Default.LocalFireDepartment, null)
                             }
 
+                            // 📦 VERIFICAÇÃO DE ESTOQUE
                             IconButton(onClick = {
                                 scope.launch {
-
-                                    // pega o primeiro produto selecionado
                                     val produto = produtos.firstOrNull { it.id in selectedIds }
                                         ?: return@launch
 
-                                    // marca como em verificação (flag)
                                     service.mudarStatus(produto, StatusProduto.VERIFICACAO_ESTOQUE)
 
                                     selectionMode = false
                                     selectedIds.clear()
 
-                                    // 👉 ABRE A TELA DE VERIFICAÇÃO
                                     context.startActivity(
                                         Intent(context, VerificacaoEstoqueActivity::class.java)
                                             .putExtra("produto_id", produto.id)
@@ -447,6 +447,16 @@ fun TelaPrincipal(service: ProductService) {
                                 Icon(Icons.Default.Inventory, null)
                             }
 
+                            // 📤 ENVIAR PRODUTOS (NOVO)
+                            IconButton(onClick = {
+                                val selecionados = produtos.filter { it.id in selectedIds }
+                                enviarProdutos(context, selecionados)
+
+                                selectionMode = false
+                                selectedIds.clear()
+                            }) {
+                                Icon(Icons.Default.Send, contentDescription = "Enviar")
+                            }
                         }
                     )
                 } else {
@@ -463,19 +473,8 @@ fun TelaPrincipal(service: ProductService) {
                         }
                     )
                 }
-            },
-
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = {
-                        launcherCadastro.launch(
-                            Intent(context, CadastroProdutoActivity::class.java)
-                        )
-                    }
-                ) {
-                    Icon(Icons.Default.Add, null)
-                }
             }
+
         ) { padding ->
 
             // ---------------- CONTEÚDO ----------------
@@ -690,15 +689,27 @@ fun ProdutoItem(
                 )
 
                 val total = produto.quantidadeAtual ?: 0
-                val qpc = produto.quantidadePorCaixa ?: 0
-                val estoqueTexto =
-                    if (qpc > 0 && total > 0) {
+                val qpc = produto.quantidadePorCaixa
+
+                val estoqueTexto = when {
+                    // 🔴 ESTOQUE EM CAIXAS (CX puro)
+                    qpc == -1 -> {
+                        "$total cx"
+                    }
+
+                    // CX + UND (com QPC)
+                    qpc != null && qpc > 0 -> {
                         val cx = total / qpc
                         val un = total % qpc
-                        "$cx cx • $un un"
-                    } else {
+                        if (un > 0) "$cx cx • $un un" else "$cx cx"
+                    }
+
+                    // UND puro
+                    else -> {
                         "$total un"
                     }
+                }
+
 
                 Text(
                     "Estoque: $estoqueTexto",

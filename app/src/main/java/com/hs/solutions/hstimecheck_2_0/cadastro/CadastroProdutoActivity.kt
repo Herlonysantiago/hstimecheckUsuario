@@ -301,16 +301,50 @@ class CadastroProdutoActivity : AppCompatActivity() {
     // ------------------------------------------------------------
     // SALVAR / EXCLUIR
     // ------------------------------------------------------------
-
     private fun salvarProduto() {
-        val cx = edtCaixa.text.toString().toIntOrNull()
-        val un = edtUnidade.text.toString().toIntOrNull()
-        val qpc = edtQtdPorCaixa.text.toString().toIntOrNull()
+        currentFocus?.clearFocus()
 
-        val total = when {
-            cx != null && qpc != null -> cx * qpc + (un ?: 0)
-            un != null -> un
-            else -> 0
+        val cx = edtCaixa.text.toString().trim().toIntOrNull() ?: 0
+        val un = edtUnidade.text.toString().trim().toIntOrNull() ?: 0
+        val qpc = edtQtdPorCaixa.text.toString().trim().toIntOrNull()
+
+        val total: Int
+        val qtdPorCaixaFinal: Int?
+
+        when {
+            // 1️⃣ CX vazio × UND preenchida × QPC vazio → UND
+            cx == 0 && un > 0 && qpc == null -> {
+                total = un
+                qtdPorCaixaFinal = null
+            }
+
+            // 2️⃣ CX vazio × UND preenchida × QPC preenchido → conversão lógica
+            cx == 0 && un > 0 && qpc != null && qpc > 0 -> {
+                total = un
+                qtdPorCaixaFinal = qpc
+            }
+
+            // 3️⃣ CX preenchida × UND preenchida × QPC vazio → ERRO
+            cx > 0 && un > 0 && (qpc == null || qpc <= 0) -> {
+                Toast.makeText(this, "Informe a quantidade por caixa", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            // 4️⃣ SOMENTE CX preenchida → estoque em CAIXAS
+            cx > 0 && un == 0 && (qpc == null || qpc <= 0) -> {
+                total = cx
+                qtdPorCaixaFinal = -1   // 🔴 marcador: estoque em caixas
+            }
+
+            // Caso geral
+            else -> {
+                total = if (qpc != null && qpc > 0) {
+                    (cx * qpc) + un
+                } else {
+                    cx + un
+                }
+                qtdPorCaixaFinal = qpc
+            }
         }
 
         val produto = Produto(
@@ -319,14 +353,13 @@ class CadastroProdutoActivity : AppCompatActivity() {
             codigoInterno = edtCodigoInterno.text.toString().ifBlank { null },
             descricao = edtDescricao.text.toString(),
             quantidadeAtual = total,
-            quantidadePorCaixa = qpc,
+            quantidadePorCaixa = qtdPorCaixaFinal,
             validadeAtual = converterData(edtValidade.text.toString()),
             precoAtual = edtPreco.text.toString().toDoubleOrNull(),
-            status = StatusProduto.NORMAL, // será ajustado pelo ProductService
+            status = StatusProduto.NORMAL,
             fotoUrl = produtoFotoUrl,
             historico = mutableListOf()
         )
-
 
         scope.launch {
             withContext(Dispatchers.IO) {
@@ -335,6 +368,8 @@ class CadastroProdutoActivity : AppCompatActivity() {
             finish()
         }
     }
+
+
 
     private fun excluirProduto() {
         produtoId ?: return
@@ -424,14 +459,24 @@ class CadastroProdutoActivity : AppCompatActivity() {
         total: Int?,
         qtdPorCaixa: Int?
     ): Pair<Int, Int> {
-        if (total == null || qtdPorCaixa == null || qtdPorCaixa <= 0) {
-            return 0 to (total ?: 0)
+
+        if (total == null) return 0 to 0
+
+        // 🔴 ESTOQUE EM CAIXAS
+        if (qtdPorCaixa == -1) {
+            return total to 0
         }
 
-        val caixas = total / qtdPorCaixa
-        val unidades = total % qtdPorCaixa
-        return caixas to unidades
+        // UND puro
+        if (qtdPorCaixa == null || qtdPorCaixa <= 0) {
+            return 0 to total
+        }
+
+        val cx = total / qtdPorCaixa
+        val un = total % qtdPorCaixa
+        return cx to un
     }
+
 
 
 }
