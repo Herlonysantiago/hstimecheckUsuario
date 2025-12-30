@@ -302,11 +302,29 @@ fun TelaPrincipal(service: ProductService) {
     }
 
     // ---------------- FILTRO ----------------
-    val listaFiltrada = produtos.filter {
-        query.isBlank() ||
-                it.descricao.contains(query, ignoreCase = true) ||
-                it.codigoBarras.contains(query)
+    val queryNormalizada = query.trim().lowercase()
+
+    val listaFiltrada = produtos.filter { produto ->
+
+        if (queryNormalizada.isBlank()) return@filter true
+
+        val descricao = produto.descricao.lowercase()
+        val codigoBarras = produto.codigoBarras?.lowercase() ?: ""
+        val codigoInterno = produto.codigoInterno?.lowercase() ?: ""
+
+        descricao.contains(queryNormalizada) ||
+                codigoBarras.contains(queryNormalizada) ||
+                codigoInterno.contains(queryNormalizada)
     }
+
+
+
+
+//    val listaFiltrada = produtos.filter {
+//        query.isBlank() ||
+//                it.descricao.contains(query, ignoreCase = true) ||
+//                it.codigoBarras.contains(query)
+//    }
 
     val grupos = listaFiltrada.groupBy {
         getDiasRestantes(it.validadeAtual)
@@ -326,7 +344,7 @@ fun TelaPrincipal(service: ProductService) {
                 },
                 onDashboard = {
                     context.startActivity(
-                        Intent( context, PainelOperacionalActivity::class.java)
+                        Intent(context, PainelOperacionalActivity::class.java)
                     )
                 },
                 onEstoque = {
@@ -334,12 +352,12 @@ fun TelaPrincipal(service: ProductService) {
                         Intent(context, VerificacaoEstoqueActivity::class.java)
                     )
                 },
-                    onSobre = {
-                        context.startActivity(
-                            Intent(context, SobreActivity::class.java)
-                        )
-                    },
-                        onVencimentos = {
+                onSobre = {
+                    context.startActivity(
+                        Intent(context, SobreActivity::class.java)
+                    )
+                },
+                onVencimentos = {
                     context.startActivity(
                         Intent(context, ProdutosVencendoActivity::class.java)
                             .putExtra("modo", "VENCENDO")
@@ -367,7 +385,7 @@ fun TelaPrincipal(service: ProductService) {
                     )
                 },
 
-            )
+                )
 
         }
     ) {
@@ -390,8 +408,6 @@ fun TelaPrincipal(service: ProductService) {
                             }
                         },
                         actions = {
-
-                            // 👍 APROVAÇÃO
                             IconButton(onClick = {
                                 scope.launch {
                                     selectedIds.forEach { id ->
@@ -409,7 +425,6 @@ fun TelaPrincipal(service: ProductService) {
                                 Icon(Icons.Default.ThumbUp, null)
                             }
 
-                            // 🔥 TRABALHANDO PREÇO
                             IconButton(onClick = {
                                 scope.launch {
                                     selectedIds.forEach { id ->
@@ -427,7 +442,6 @@ fun TelaPrincipal(service: ProductService) {
                                 Icon(Icons.Default.LocalFireDepartment, null)
                             }
 
-                            // 📦 VERIFICAÇÃO DE ESTOQUE
                             IconButton(onClick = {
                                 scope.launch {
                                     val produto = produtos.firstOrNull { it.id in selectedIds }
@@ -447,7 +461,6 @@ fun TelaPrincipal(service: ProductService) {
                                 Icon(Icons.Default.Inventory, null)
                             }
 
-                            // 📤 ENVIAR PRODUTOS (NOVO)
                             IconButton(onClick = {
                                 val selecionados = produtos.filter { it.id in selectedIds }
                                 enviarProdutos(context, selecionados)
@@ -473,11 +486,23 @@ fun TelaPrincipal(service: ProductService) {
                         }
                     )
                 }
+            },
+            floatingActionButton = {
+                if (!selectionMode) {
+                    FloatingActionButton(
+                        onClick = {
+                            launcherCadastro.launch(
+                                Intent(context, CadastroProdutoActivity::class.java)
+                            )
+                        }
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Adicionar")
+                    }
+                }
             }
-
         ) { padding ->
 
-            // ---------------- CONTEÚDO ----------------
+            // 🔴 O CONTEÚDO PRECISA ESTAR AQUI DENTRO
             Column(
                 modifier = Modifier
                     .padding(padding)
@@ -496,7 +521,6 @@ fun TelaPrincipal(service: ProductService) {
                 )
 
                 LazyColumn {
-
                     chavesOrdenadas.forEach { chave ->
 
                         val grupo = grupos[chave] ?: emptyList()
@@ -514,7 +538,6 @@ fun TelaPrincipal(service: ProductService) {
                         }
 
                         items(grupo) { produto ->
-
                             val isSelected = produto.id in selectedIds
 
                             ProdutoItem(
@@ -655,9 +678,7 @@ fun ProdutoItem(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
-                }
-
-                else {
+                } else {
                     Icon(
                         Icons.Default.Image,
                         contentDescription = null,

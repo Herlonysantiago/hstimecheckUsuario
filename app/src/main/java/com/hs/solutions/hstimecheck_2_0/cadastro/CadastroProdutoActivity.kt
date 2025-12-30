@@ -48,7 +48,7 @@ class CadastroProdutoActivity : AppCompatActivity() {
     private lateinit var edtCaixa: EditText
     private lateinit var edtUnidade: EditText
     private lateinit var edtQtdPorCaixa: EditText
-
+    private lateinit var imgBarcodePreview: ImageView
     private lateinit var imgProduto: ImageView
     private lateinit var btnBuscar: ImageButton
     private lateinit var btnFoto: ImageButton
@@ -170,7 +170,7 @@ class CadastroProdutoActivity : AppCompatActivity() {
         edtCaixa = findViewById(R.id.edtCaixa)
         edtUnidade = findViewById(R.id.edtUnidade)
         edtQtdPorCaixa = findViewById(R.id.edtQtdPorCaixa)
-
+        imgBarcodePreview = findViewById(R.id.imgBarcodePreview)
         imgProduto = findViewById(R.id.imgProduto)
         btnBuscar = findViewById(R.id.btnBuscar)
         btnFoto = findViewById(R.id.btnFoto)
@@ -186,7 +186,31 @@ class CadastroProdutoActivity : AppCompatActivity() {
     // ------------------------------------------------------------
     // FOTO
     // ------------------------------------------------------------
+    private fun buscarProdutoCadastro() {
+        val codBar = edtCodigoBarras.text.toString().trim()
+        val codInt = edtCodigoInterno.text.toString().trim()
 
+        if (codBar.isBlank() && codInt.isBlank()) {
+            Toast.makeText(this, "Informe um código para buscar", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        scope.launch {
+            val item = withContext(Dispatchers.IO) {
+                if (codBar.isNotBlank()) lookup.buscarPorCodigoBarras(codBar)
+                else lookup.buscarPorCodigoInterno(codInt)
+            } ?: return@launch
+
+            // Preenche o que estiver vazio
+            if (edtCodigoInterno.text.isBlank()) edtCodigoInterno.setText(item.codigo?.toString() ?: "")
+            if (edtCodigoBarras.text.isBlank()) edtCodigoBarras.setText(item.bar_cod?.toString() ?: "")
+            if (edtDescricao.text.isBlank()) edtDescricao.setText(item.descricao ?: item.complemento ?: "")
+
+            // Carrega a foto pelo código de barras resolvido
+            val codigoFinal = edtCodigoBarras.text.toString()
+            if (codigoFinal.isNotBlank()) carregarFotoSeNecessario(codigoFinal)
+        }
+    }
     private fun abrirCamera() {
         fotoFile = File.createTempFile(
             "produto_",
@@ -270,7 +294,22 @@ class CadastroProdutoActivity : AppCompatActivity() {
     // ------------------------------------------------------------
 
     private fun setupButtons() {
-        btnBuscar.setOnClickListener { carregarDadosJson() }
+        btnBuscar.setOnClickListener { buscarProdutoCadastro() }
+// Dentro de setupButtons() ou no final do onCreate()
+        imgBarcodePreview.setOnClickListener {
+
+            val codigo = edtCodigoBarras.text.toString().trim()
+
+            if (codigo.isBlank()) {
+                Toast.makeText(this, "Digite o código de barras primeiro", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val intent = Intent(this, FullImageActivity::class.java)
+            intent.putExtra("isBarcode", true)
+            intent.putExtra("barcodeContent", codigo)
+            startActivity(intent)
+        }
 
         btnFoto.setOnClickListener {
             AlertDialog.Builder(this)
