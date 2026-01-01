@@ -791,10 +791,20 @@ fun ProdutoItem(
                     style = MaterialTheme.typography.bodySmall
                 )
 
+
+
                 val total = produto.quantidadeAtual ?: 0
                 val qpc = produto.quantidadePorCaixa
 
                 val estoqueTexto = when {
+                    // Se o multiplicador for 1000, tratamos como conversão de Gramas para KG
+                    qpc == 1000 -> {
+                        val kg = total / 1000
+                        val gr = total % 1000
+                        if (gr > 0) "$kg kg • $gr g" else "$kg kg"
+                    }
+
+                    // Suas regras originais para caixas e unidades
                     qpc == -1 -> "$total cx"
                     qpc != null && qpc > 0 -> {
                         val cx = total / qpc
@@ -803,30 +813,18 @@ fun ProdutoItem(
                     }
                     else -> "$total un"
                 }
+                Text(estoqueTexto, style = MaterialTheme.typography.bodySmall)
+                Text("Validade: ${produto.validadeAtual ?: "—"}", style = MaterialTheme.typography.bodySmall)
 
-                Text(
-                    "Estoque: $estoqueTexto",
-                    style = MaterialTheme.typography.bodySmall
-                )
-
-                Text(
-                    "Validade: ${produto.validadeAtual ?: "—"}",
-                    style = MaterialTheme.typography.bodySmall
-                )
-
-                Row {
-                    statusBadges.forEach { (texto, cor) ->
-                        Text(
-                            texto,
-                            color = cor,
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(end = 6.dp)
-                        )
-                    }
+                if (produto.status != StatusProduto.NORMAL) {
+                    Text(
+                        text = if(produto.status == StatusProduto.TRABALHANDO_PRECO) "Trabalhando Preço" else "Aguardando Aprovação",
+                        color = Color.Red,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
-        }
+    }
     }
 }
-

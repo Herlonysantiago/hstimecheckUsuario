@@ -203,16 +203,29 @@ class CadastroProdutoActivity : AppCompatActivity() {
                 else lookup.buscarPorCodigoInterno(codInt)
             } ?: return@launch
 
-            // Preenche o que estiver vazio
-            if (edtCodigoInterno.text.isBlank()) edtCodigoInterno.setText(item.codigo?.toString() ?: "")
-            if (edtCodigoBarras.text.isBlank()) edtCodigoBarras.setText(item.bar_cod?.toString() ?: "")
-            if (edtDescricao.text.isBlank()) edtDescricao.setText(item.descricao ?: item.complemento ?: "")
+            if (edtCodigoInterno.text.isBlank())
+                edtCodigoInterno.setText(item.codigo?.toString() ?: "")
 
-            // Carrega a foto pelo código de barras resolvido
+            if (edtCodigoBarras.text.isBlank())
+                edtCodigoBarras.setText(item.bar_cod?.toString() ?: "")
+
+            if (edtDescricao.text.isBlank())
+                edtDescricao.setText(item.descricao ?: item.complemento ?: "")
+
+            // 🔴 AQUI ESTÁ A CORREÇÃO
+            extrairInfoCaixa(item.complemento)?.let {
+                if (edtQtdPorCaixa.text.isNullOrBlank()) {
+                    edtQtdPorCaixa.setText(it.unidadesPorCaixa.toString())
+                }
+            }
+
             val codigoFinal = edtCodigoBarras.text.toString()
-            if (codigoFinal.isNotBlank()) carregarFotoSeNecessario(codigoFinal)
+            if (codigoFinal.isNotBlank()) {
+                carregarFotoSeNecessario(codigoFinal)
+            }
         }
     }
+
     private fun abrirCamera() {
         fotoFile = File.createTempFile(
             "produto_",
