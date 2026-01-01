@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/layoutVendaProduto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/txtProduto"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Produto"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/txtValidade"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Validade:" />
+
+    <TextView
+        android:id="@+id/txtEstoque"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="Estoque:" />
+
+    <EditText
+        android:id="@+id/edtCxVenda"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="CX vendidas"
+        android:inputType="number" />
+
+    <EditText
+        android:id="@+id/edtUnVenda"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="UND vendidas"
+        android:inputType="number" />
+
+    <Button
+        android:id="@+id/btnConfirmarVenda"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="CONFIRMAR VENDA" />
+
+</LinearLayout>

@@ -1,30 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:padding="24dp"
-    android:orientation="vertical"
+    android:id="@+id/layoutOpcoes"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
 
     <RadioGroup
         android:id="@+id/rgOptions"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
         <RadioButton
             android:id="@+id/rbRemoveList"
-            android:text="Remover desta lista"/>
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Remover desta lista" />
 
         <RadioButton
             android:id="@+id/rbReturnNormal"
-            android:text="Voltar ao estado normal"/>
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Voltar ao estado normal" />
 
         <RadioButton
             android:id="@+id/rbDeletePermanent"
-            android:text="Excluir completamente"/>
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Excluir completamente" />
     </RadioGroup>
 
     <Button
         android:id="@+id/btnConfirm"
         android:layout_width="match_parent"
-        android:text="Confirmar"/>
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Confirmar" />
 </LinearLayout>

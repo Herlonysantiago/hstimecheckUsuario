@@ -259,6 +259,26 @@ object HistoryService {
             observacao = "Solicitação registrada na tela Trabalhando Preço"
         )
     }
+    // =========================
+// VALIDADE
+// =========================
+    fun validadeAdicionada(
+        produto: Produto,
+        validade: String,
+        quantidade: Int?
+    ): HistoricoItem =
+        base(
+            produto = produto,
+            validade = validade,
+            tipo = TipoEventoHistorico.VALIDADE_ADICIONADA,
+            titulo = "Validade adicionada",
+            descricao = "Nova validade cadastrada para o produto"
+        ) {
+            copy(
+                estoqueTotalAtual = quantidade
+            )
+        }
+
     fun validadeRemovida(produto: Produto): HistoricoItem =
         base(
             produto = produto,

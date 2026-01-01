@@ -24,6 +24,8 @@ import com.hs.solutions.hstimecheck_2_0.scanner.ScannerActivity
 import kotlinx.coroutines.*
 import java.io.File
 import java.util.*
+import com.hs.solutions.hstimecheck_2_0.models.StatusValidade
+import com.hs.solutions.hstimecheck_2_0.models.ValidadeItem
 import com.hs.solutions.hstimecheck_2_0.models.TipoEventoHistorico
 
 class CadastroProdutoActivity : AppCompatActivity() {
@@ -343,6 +345,19 @@ class CadastroProdutoActivity : AppCompatActivity() {
     private fun salvarProduto() {
         currentFocus?.clearFocus()
 
+        // -----------------------------
+        // DADOS BÁSICOS
+        // -----------------------------
+        val validadeNova = converterData(edtValidade.text.toString())
+        val preco = edtPreco.text.toString().toDoubleOrNull()
+
+        val produtoExistente = produtoId?.let { id ->
+            productService.produtos.value.find { it.id == id }
+        }
+
+        // -----------------------------
+        // ESTOQUE
+        // -----------------------------
         val cx = edtCaixa.text.toString().trim().toIntOrNull() ?: 0
         val un = edtUnidade.text.toString().trim().toIntOrNull() ?: 0
         val qpc = edtQtdPorCaixa.text.toString().trim().toIntOrNull()
@@ -357,7 +372,7 @@ class CadastroProdutoActivity : AppCompatActivity() {
                 qtdPorCaixaFinal = null
             }
 
-            // 2️⃣ CX vazio × UND preenchida × QPC preenchido → conversão lógica
+            // 2️⃣ CX vazio × UND preenchida × QPC preenchido
             cx == 0 && un > 0 && qpc != null && qpc > 0 -> {
                 total = un
                 qtdPorCaixaFinal = qpc
@@ -372,7 +387,7 @@ class CadastroProdutoActivity : AppCompatActivity() {
             // 4️⃣ SOMENTE CX preenchida → estoque em CAIXAS
             cx > 0 && un == 0 && (qpc == null || qpc <= 0) -> {
                 total = cx
-                qtdPorCaixaFinal = -1   // 🔴 marcador: estoque em caixas
+                qtdPorCaixaFinal = -1
             }
 
             // Caso geral
@@ -386,27 +401,71 @@ class CadastroProdutoActivity : AppCompatActivity() {
             }
         }
 
-        val produto = Produto(
+        // -----------------------------
+        // PRODUTO BASE
+        // -----------------------------
+        val produtoBase = produtoExistente ?: Produto(
             id = produtoId ?: UUID.randomUUID().toString(),
             codigoBarras = edtCodigoBarras.text.toString(),
             codigoInterno = edtCodigoInterno.text.toString().ifBlank { null },
             descricao = edtDescricao.text.toString(),
-            quantidadeAtual = total,
-            quantidadePorCaixa = qtdPorCaixaFinal,
-            validadeAtual = converterData(edtValidade.text.toString()),
-            precoAtual = edtPreco.text.toString().toDoubleOrNull(),
-            status = StatusProduto.NORMAL,
-            fotoUrl = produtoFotoUrl,
+            validades = mutableListOf(),
             historico = mutableListOf()
         )
 
+        // -----------------------------
+        // PRODUTO FINAL (ÚNICO OBJETO)
+        // -----------------------------
+        val produtoFinal = produtoBase.copy(
+            codigoBarras = edtCodigoBarras.text.toString(),
+            codigoInterno = edtCodigoInterno.text.toString().ifBlank { null },
+            descricao = edtDescricao.text.toString(),
+            validadeAtual = validadeNova,
+            quantidadeAtual = total,
+            quantidadePorCaixa = qtdPorCaixaFinal,
+            precoAtual = preco
+        )
+
+        // -----------------------------
+        // VALIDADES
+        // -----------------------------
+        if (!validadeNova.isNullOrBlank()) {
+
+            val jaExiste = produtoFinal.validades.any { it.validade == validadeNova }
+
+            if (!jaExiste) {
+                produtoFinal.validades.add(
+                    ValidadeItem(
+                        validade = validadeNova,
+                        quantidade = total,
+                       /* status = StatusValidade.NORMAL,*/
+                        dataCadastro = System.currentTimeMillis().toString()
+                    )
+                )
+
+                produtoFinal.historico.add(
+                    HistoryService.validadeAdicionada(
+                        produto = produtoFinal,
+                        validade = validadeNova,
+                        quantidade = total
+                    )
+                )
+            }
+
+            produtoFinal.validadeAtual = validadeNova
+        }
+
+        // -----------------------------
+        // SALVAR
+        // -----------------------------
         scope.launch {
             withContext(Dispatchers.IO) {
-                productService.inserirOuAtualizar(produto)
+                productService.inserirOuAtualizar(produtoFinal)
             }
             finish()
         }
     }
+
 
 
 

@@ -49,6 +49,7 @@ class ProductService(private val repo: ProductRepository) {
         )
         carregar()
     }
+
     suspend fun removerValidade(produto: Produto) {
 
         val historico = HistoryService.validadeRemovida(produto)
@@ -86,7 +87,6 @@ class ProductService(private val repo: ProductRepository) {
         repo.salvar(atualizado)
         carregar()
     }
-
 
 
     // =========================
@@ -196,6 +196,7 @@ class ProductService(private val repo: ProductRepository) {
             codigoBarrasIgual || codigoInternoIgual
         }
     }
+
     suspend fun atualizarQuantidade(
         produto: Produto,
         novaQuantidade: Int
@@ -229,6 +230,69 @@ class ProductService(private val repo: ProductRepository) {
 
         repo.salvar(atualizado)
         carregar()
+    }
+
+    suspend fun registrarVenda(
+        produtoId: String,
+        quantidadeVendida: Int,
+        validadeSelecionada: String? = null
+    ) {
+        val produtoOriginal = produtos.value.find { it.id == produtoId } ?: return
+        if (quantidadeVendida <= 0) return
+
+        // 🔹 Cópia profunda (Compose-safe)
+        val produto = produtoOriginal.copy(
+            validades = produtoOriginal.validades.map { it.copy() }.toMutableList(),
+            historico = produtoOriginal.historico.toMutableList()
+        )
+
+        // 🔹 FIFO de validades
+        val validadesOrdenadas = produto.validades
+            .filter { (it.quantidade ?: 0) > 0 }
+            .sortedBy { it.validade }
+
+        val validade = validadeSelecionada?.let { data ->
+            validadesOrdenadas.find { it.validade == data }
+        } ?: validadesOrdenadas.firstOrNull()
+        ?: return
+
+        val estoqueAtual = validade.quantidade ?: 0
+        if (estoqueAtual < quantidadeVendida) {
+            throw IllegalStateException("Estoque insuficiente")
+        }
+
+        val estoqueAntes = estoqueAtual
+
+        // 🔻 Desconto
+        validade.quantidade = estoqueAtual - quantidadeVendida
+
+        // 🔄 Recalcula total do produto
+        produto.quantidadeAtual =
+            produto.validades.sumOf { it.quantidade ?: 0 }
+
+        // 🔄 Atualiza validade atual
+        produto.validadeAtual = produto.validades
+            .filter { (it.quantidade ?: 0) > 0 }
+            .minByOrNull { it.validade }
+            ?.validade
+
+        // 📝 Histórico
+        produto.historico.add(
+            HistoryService.venda(
+                produto = produto,
+                validade = validade.validade,
+                estoqueUnAntes = estoqueAntes,
+                estoqueUnDepois = validade.quantidade ?: 0
+            )
+        )
+
+        // 💾 Persiste
+        repo.salvar(produto)
+
+        // 🔴 EMITE NOVA LISTA (CHAVE DO PROBLEMA)
+        _produtos.value = _produtos.value.map {
+            if (it.id == produto.id) produto else it
+        }
     }
 
 }

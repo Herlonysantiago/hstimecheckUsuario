@@ -5,6 +5,12 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import java.io.File
+import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import kotlinx.coroutines.launch
+import android.widget.Toast
+
 // ================= COMPOSE =================
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -29,6 +35,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.rememberCoroutineScope
 
 // ================= COIL =================
 import coil.compose.AsyncImage
@@ -55,9 +62,10 @@ import com.hs.solutions.hstimecheck_2_0.estoque.VerificacaoEstoqueActivity
 import com.hs.solutions.hstimecheck_2_0.sobre.SobreActivity
 import com.hs.solutions.hstimecheck_2_0.trabalhando_preco.TrabalhandoPrecoActivity
 import com.hs.solutions.hstimecheck_2_0.trabalhando_preco.TrabalhandoPrecoScreen
+import com.hs.solutions.hstimecheck_2_0.ui.verificacaoqualidade.VerificacaoQualidadeProdutoActivity
 import com.hs.solutions.hstimecheck_2_0.vencendo.ProdutosVencendoActivity
 import com.hs.solutions.hstimecheck_2_0.utils.enviarProdutos
-
+import com.hs.solutions.hstimecheck_2_0.venda.VendaProdutoActivity
 // =======================================================
 // ACTIVITY PRINCIPAL (ÚNICO onCreate — CORRETO)
 // =======================================================
@@ -68,7 +76,6 @@ class TelaPrincipalActivity : ComponentActivity() {
 
         AppContainer.init(this)
         val service = AppContainer.productService
-        val fotoUrl = intent.getStringExtra("fotoUrl")
 
         setContent {
             MaterialTheme {
@@ -78,6 +85,11 @@ class TelaPrincipalActivity : ComponentActivity() {
         }
     }
 }
+
+
+
+
+
 
 // =======================================================
 // CONFIGURAÇÕES GLOBAIS (DataStore)
@@ -98,6 +110,7 @@ fun AplicarConfiguracoesGlobais() {
         AppPreferences.read(context, AppPreferences.ALERTA_APROVACAO, true).collect { }
     }
 }
+
 
 // =======================================================
 // FUNÇÕES AUXILIARES (SUAS)
@@ -159,6 +172,7 @@ fun SectionHeader(text: String) {
 fun DrawerMenu(
     onDashboard: () -> Unit = {},
     onProdutos: () -> Unit = {},
+    onValidadesProduto: () -> Unit = {},
     onImportacao: () -> Unit = {},
     onExportacao: () -> Unit = {},
     onAprovacao: () -> Unit = {},
@@ -171,9 +185,12 @@ fun DrawerMenu(
     onSobre: () -> Unit = {},
     onCreditos: () -> Unit = {}
 ) {
-    ModalDrawerSheet {
+    ModalDrawerSheet(
+        modifier = Modifier.verticalScroll(rememberScrollState())
+    ) {
 
         Text("Menu", Modifier.padding(16.dp), fontWeight = FontWeight.Bold)
+
 
         NavigationDrawerItem(
             label = { Text("Dashboard") },
@@ -204,6 +221,12 @@ fun DrawerMenu(
             icon = { Icon(Icons.Default.BarChart, null) },
             selected = false,
             onClick = onEstoque
+        )
+        NavigationDrawerItem(
+            label = { Text("Validades do Produto") },
+            icon = { Icon(Icons.Default.DateRange, null) },
+            selected = false,
+            onClick = onValidadesProduto
         )
 
         NavigationDrawerItem(
@@ -281,6 +304,16 @@ fun TelaPrincipal(service: ProductService) {
     )
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val launcherVenda =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                scope.launch {
+                    service.carregar()
+                }
+            }
+        }
 
     var query by remember { mutableStateOf("") }
     val produtos by service.produtos.collectAsState()
@@ -372,6 +405,11 @@ fun TelaPrincipal(service: ProductService) {
                 onAprovacao = {
                     context.startActivity(
                         Intent(context, AprovacaoComercialActivity::class.java)
+                    )
+                },
+                onValidadesProduto = {
+                    context.startActivity(
+                        Intent(context, VerificacaoQualidadeProdutoActivity::class.java )
                     )
                 },
                 onConfiguracoes = {
@@ -537,7 +575,11 @@ fun TelaPrincipal(service: ProductService) {
                             SectionHeader(label)
                         }
 
-                        items(grupo) { produto ->
+                        items(
+                            items = grupo,
+                            key = { it.id } // 🔴 chave estável para recomposição
+                        ) { produto ->
+
                             val isSelected = produto.id in selectedIds
 
                             ProdutoItem(
@@ -570,15 +612,35 @@ fun TelaPrincipal(service: ProductService) {
                                     selectedIds.add(produto.id)
                                 },
                                 onDoubleClick = {
-                                    scope.launch {
-                                        service.mudarStatus(
-                                            produto,
-                                            StatusProduto.TRABALHANDO_PRECO
-                                        )
+                                    // Normaliza validades
+                                    produto.validades.forEach {
+                                        if (it.quantidade == null) it.quantidade = 0
                                     }
+
+                                    val validadeSelecionada = produto.validades
+                                        .filter { (it.quantidade ?: 0) > 0 }
+                                        .minByOrNull { it.validade }
+                                        ?.validade
+
+                                    if (validadeSelecionada == null) {
+                                        Toast.makeText(
+                                            context,
+                                            "Produto sem estoque disponível",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        return@ProdutoItem
+                                    }
+
+                                    launcherVenda.launch(
+                                        Intent(context, VendaProdutoActivity::class.java).apply {
+                                            putExtra("produto_id", produto.id)
+                                            putExtra("validade", validadeSelecionada)
+                                        }
+                                    )
                                 }
                             )
                         }
+
                     }
                 }
             }
@@ -587,9 +649,11 @@ fun TelaPrincipal(service: ProductService) {
 }
 
 
+
 // =======================================================
 // ITEM DO PRODUTO (COMPLETO)
 // =======================================================
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProdutoItem(
     produto: Produto,
@@ -598,9 +662,8 @@ fun ProdutoItem(
     onLongPress: () -> Unit,
     onDoubleClick: () -> Unit
 ) {
-    var lastTapTime by remember { mutableStateOf(0L) }
     val context = LocalContext.current
-
+    var bloqueado by remember { mutableStateOf(false) }
     val dias = getDiasRestantes(produto.validadeAtual)
 
     val corFundo = when {
@@ -630,7 +693,30 @@ fun ProdutoItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 3.dp),
+            .padding(horizontal = 6.dp, vertical = 3.dp)
+            .combinedClickable(
+                onClick = {
+                    if (!bloqueado) {
+                        onClick()
+                    }
+                },
+                onLongClick = {
+                    if (!bloqueado) {
+                        onLongPress()
+                    }
+                },
+                onDoubleClick = {
+                    if (bloqueado) return@combinedClickable
+                    bloqueado = true
+
+                    onDoubleClick()
+
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        bloqueado = false
+                    }, 600)
+                }
+            )
+        ,
         colors = if (isSelected)
             CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
@@ -639,54 +725,50 @@ fun ProdutoItem(
             CardDefaults.cardColors(containerColor = corFundo)
     ) {
 
-        Row(
+
+    Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 4.dp)
-                .pointerInput(produto.id) {
-                    detectTapGestures(
-                        onLongPress = { onLongPress() },
-                        onTap = {
-                            val now = System.currentTimeMillis()
-                            if (now - lastTapTime < 220) onDoubleClick()
-                            else onClick()
-                            lastTapTime = now
-                        }
-                    )
-                },
+                .padding(horizontal = 6.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
 
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .border(1.dp, Color(0x22000000), RoundedCornerShape(8.dp))
-                    .clickable {
-                        if (!produto.fotoUrl.isNullOrBlank()) {
-                            context.startActivity(
-                                Intent(context, FullImageActivity::class.java)
-                                    .putExtra("fotoUrl", produto.fotoUrl)
-                            )
-                        }
+            // 📸 FOTO (clique simples + duplo clique)
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .border(
+                    width = 1.dp,
+                    color = Color(0x22000000),
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .clickable {
+                    if (!produto.fotoUrl.isNullOrBlank()) {
+                        context.startActivity(
+                            Intent(context, FullImageActivity::class.java)
+                                .putExtra("fotoUrl", produto.fotoUrl)
+                        )
                     }
-            ) {
-                if (!produto.fotoUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = resolverImagem(produto.fotoUrl!!),
-                        contentDescription = "Foto",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Icon(
-                        Icons.Default.Image,
-                        contentDescription = null,
-                        tint = Color.Gray,
-                        modifier = Modifier.align(Alignment.Center).size(20.dp)
-                    )
                 }
+        ) {
+            if (!produto.fotoUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = resolverImagem(produto.fotoUrl!!),
+                    contentDescription = "Foto do produto",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Image,
+                    contentDescription = null,
+                    tint = Color.Gray,
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
+        }
+
 
             Spacer(Modifier.width(8.dp))
 
@@ -713,24 +795,14 @@ fun ProdutoItem(
                 val qpc = produto.quantidadePorCaixa
 
                 val estoqueTexto = when {
-                    // 🔴 ESTOQUE EM CAIXAS (CX puro)
-                    qpc == -1 -> {
-                        "$total cx"
-                    }
-
-                    // CX + UND (com QPC)
+                    qpc == -1 -> "$total cx"
                     qpc != null && qpc > 0 -> {
                         val cx = total / qpc
                         val un = total % qpc
                         if (un > 0) "$cx cx • $un un" else "$cx cx"
                     }
-
-                    // UND puro
-                    else -> {
-                        "$total un"
-                    }
+                    else -> "$total un"
                 }
-
 
                 Text(
                     "Estoque: $estoqueTexto",
@@ -757,3 +829,4 @@ fun ProdutoItem(
         }
     }
 }
+
