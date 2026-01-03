@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import com.hs.solutions.hstimecheck_2_0.core.AppContainer
+import com.hs.solutions.hstimecheck_2_0.core.DateFormatter
 
 class TrabalhandoPrecoActivity : ComponentActivity() {
 

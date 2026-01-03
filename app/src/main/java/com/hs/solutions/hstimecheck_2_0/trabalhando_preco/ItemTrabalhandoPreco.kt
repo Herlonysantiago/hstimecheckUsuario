@@ -11,7 +11,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.hs.solutions.hstimecheck_2_0.models.Produto
+import com.hs.solutions.hstimecheck_2_0.core.DateFormatter
 
+
+ fun estoqueTexto(produto: Produto): String {
+    val total = produto.quantidadeAtual ?: return "—"
+    val qpc = produto.quantidadePorCaixa
+
+    return when {
+        qpc == -1 -> "$total cx"
+        qpc == null || qpc <= 0 -> "$total un"
+        else -> {
+            val cx = total / qpc
+            val un = total % qpc
+            if (un > 0) "$cx cx • $un un" else "$cx cx"
+        }
+    }
+}
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ItemTrabalhandoPreco(
@@ -40,13 +56,32 @@ fun ItemTrabalhandoPreco(
             .padding(12.dp)
     ) {
         Text("CB: ${produto.codigoBarras ?: "—"}", style = MaterialTheme.typography.bodyMedium)
+
         Text(
             "CI: ${produto.codigoInterno ?: "—"} - ${produto.descricao}",
             style = MaterialTheme.typography.bodySmall
         )
         Text(
-            "Validade: ${produto.validadeAtual ?: "—"}",
+            "Validade: ${DateFormatter.isoParaBr(produto.validadeAtual)}",
+            style = MaterialTheme.typography.bodySmall
+        )
+
+
+        Spacer(Modifier.height(4.dp))
+
+        Text(
+            "Estoque: ${estoqueTexto(produto)}",
+            style = MaterialTheme.typography.bodySmall
+        )
+
+        Text(
+            "Preço: ${
+                produto.precoAtual?.let { "R$ %.2f".format(it) } ?: "—"
+            }",
             style = MaterialTheme.typography.bodySmall
         )
     }
+
+
+
 }

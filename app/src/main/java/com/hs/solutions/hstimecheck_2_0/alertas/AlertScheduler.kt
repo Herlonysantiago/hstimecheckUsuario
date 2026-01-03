@@ -20,7 +20,7 @@ fun testarAlertaAgora(context: Context) {
 fun agendarAlertas(context: Context) {
 
     val work = PeriodicWorkRequestBuilder<AlertaWorker>(
-        20, TimeUnit.MINUTES
+        120, TimeUnit.MINUTES
     ).build()
 
     WorkManager.getInstance(context)

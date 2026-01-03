@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import com.hs.solutions.hstimecheck_2_0.estoque.*
 class ProductService(private val repo: ProductRepository) {
-
+    private val TAG_STATUS = "STATUS_DEBUG"
     private val _produtos = MutableStateFlow<List<Produto>>(emptyList())
     val produtos: StateFlow<List<Produto>> = _produtos.asStateFlow()
 
@@ -26,6 +26,11 @@ class ProductService(private val repo: ProductRepository) {
     // =========================
     suspend fun inserirOuAtualizar(produto: Produto) {
 
+        android.util.Log.d(
+            TAG_STATUS,
+            "SERVICE ENTRADA → id=${produto.id} status=${produto.status}"
+        )
+
         if (existeDuplicidade(produto)) {
             throw IllegalStateException(
                 "Já existe um produto com o mesmo código e a mesma validade."
@@ -42,13 +47,24 @@ class ProductService(private val repo: ProductRepository) {
             )
         }
 
-        val statusAjustado = StatusRules.aplicarRegraSanitaria(base)
+        val statusFinal = if (novo) {
+            StatusRules.aplicarRegraSanitaria(base)
+        } else {
+            base.status   // 🔴 NÃO ALTERA STATUS NA EDIÇÃO
+        }
+
+        android.util.Log.d(
+            TAG_STATUS,
+            "SERVICE SAÍDA → id=${base.id} status=$statusFinal"
+        )
 
         repo.salvar(
-            base.copy(status = statusAjustado)
+            base.copy(status = statusFinal)
         )
+
         carregar()
     }
+
 
     suspend fun removerValidade(produto: Produto) {
 

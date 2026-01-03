@@ -1,5 +1,6 @@
 package com.hs.solutions.hstimecheck_2_0.core
 
+import com.hs.solutions.hstimecheck_2_0.core.DateFormatter
 import com.hs.solutions.hstimecheck_2_0.models.Produto
 
 fun formatarProdutoParaEnvio(produto: Produto): String {
@@ -21,7 +22,8 @@ fun formatarProdutoParaEnvio(produto: Produto): String {
         CB: ${produto.codigoBarras}
         CI: ${produto.codigoInterno ?: "-"}
         Estoque: $estoque
-        Validade: ${produto.validadeAtual ?: "-"}
+        Validade: ${DateFormatter.isoParaBr(produto.validadeAtual)}
+
     """.trimIndent()
 }
 fun montarMensagemEnvio(produtos: List<Produto>): String {

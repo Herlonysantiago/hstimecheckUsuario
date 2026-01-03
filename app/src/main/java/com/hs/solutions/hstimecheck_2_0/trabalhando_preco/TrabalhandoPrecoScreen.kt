@@ -1,5 +1,6 @@
 package com.hs.solutions.hstimecheck_2_0.trabalhando_preco
 
+
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
@@ -18,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.hs.solutions.hstimecheck_2_0.models.Produto
+import com.hs.solutions.hstimecheck_2_0.core.DateFormatter
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MenuTrabalhandoPreco(
@@ -124,8 +127,11 @@ fun TrabalhandoPrecoScreen(
                                     produtosSelecionados.forEach {
                                         append(
                                             "• ${it.descricao}\n" +
-                                                    "  Validade: ${it.validadeAtual ?: "-"}\n"+
-                                                    "  Preço : ${it.precoAtual?:"-"}\n"
+                                                    "  Validade: ${DateFormatter.isoParaBr(it.validadeAtual)}\n"+
+                                                    "  Preço : ${it.precoAtual ?: "-"}\n"+
+
+                                            "  Estoque: ${estoqueTexto(it)}\n\n"
+
                                         )
                                     }
                                 }
@@ -148,8 +154,10 @@ fun TrabalhandoPrecoScreen(
                                         append(
                                             "• ${it.descricao}\n" +
                                                     "  Código: ${it.codigoInterno ?: "-"}\n" +
-                                                    "  Validade: ${it.validadeAtual ?: "-"}\n" +
+                                                    "  Validade: ${DateFormatter.isoParaBr(it.validadeAtual)}\n" +
+                                                    "  Preço : ${it.precoAtual?:"-"}\n"+
                                                     "  Estoque: ${it.quantidadeAtual ?: 0}\n\n"
+
                                         )
                                     }
                                     append("📱 HS TimeCheck\n")
@@ -215,7 +223,7 @@ fun TrabalhandoPrecoScreen(
                 enviarWhatsapp(
                     """
                     Produto: ${produto.codigoInterno ?: "-"} - ${produto.descricao}
-                    Validade: ${produto.validadeAtual ?: "-"}
+                   Validade: ${DateFormatter.isoParaBr(produto.validadeAtual)}+
                     Estoque: ${produto.quantidadeAtual ?: 0}
 
                     Pode verificar melhor preço?

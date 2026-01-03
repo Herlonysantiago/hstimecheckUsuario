@@ -8,7 +8,7 @@ import com.hs.solutions.hstimecheck_2_0.models.StatusProduto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-
+import com.hs.solutions.hstimecheck_2_0.core.DateFormatter
 class TrabalhandoPrecoViewModel : ViewModel() {
 
     private val service = AppContainer.productService
@@ -43,8 +43,10 @@ class TrabalhandoPrecoViewModel : ViewModel() {
             """
         Produto: ${produto.codigoInterno ?: "-"} - ${produto.descricao}
         Código de barras: ${produto.codigoBarras ?: "-"}
-        Validade: ${produto.validadeAtual ?: "-"}
-        Estoque: ${produto.quantidadeAtual ?: 0}
+        Validade: ${DateFormatter.isoParaBr(produto.validadeAtual)}
+
+        Estoque: ${estoqueTexto(produto)}\n\n
+}
         """.trimIndent()
         }
     }

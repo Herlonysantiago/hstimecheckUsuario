@@ -9,6 +9,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import android.app.AlertDialog
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import com.hs.solutions.hstimecheck_2_0.core.DateFormatter
 
 class ProdutosVencendoViewModel : ViewModel() {
 
@@ -66,11 +71,50 @@ class ProdutosVencendoViewModel : ViewModel() {
         }
     }
 
-    fun excluirValidade(produto: Produto) {
+    fun excluirValidade(produto: Produto, contexto: Context) {
         viewModelScope.launch {
-            productService.removerValidade(produto)
-            carregar()
+
+            val codigo = produto.codigoInterno ?: "—"
+            val descricao = produto.descricao
+            val validade = DateFormatter.isoParaBr(produto.validadeAtual)
+
+            AlertDialog.Builder(contexto)
+                .setTitle("Excluir validade")
+                .setMessage("Deseja solicitar voltar o preço ao normal antes de excluir a validade?")
+                .setPositiveButton("Sim") { _, _ ->
+
+                    val mensagem = """
+                    Código: $codigo
+                    Produto: $descricao
+                    Validade: $validade
+
+                    Gentileza voltar o preço.
+                    Data esgotada.
+
+                    HS TIMECHECK
+                """.trimIndent()
+
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://wa.me/?text=${Uri.encode(mensagem)}")
+                    )
+                    contexto.startActivity(intent)
+
+                    viewModelScope.launch {
+                        productService.removerValidade(produto)
+                        carregar()
+                    }
+                }
+                .setNegativeButton("Não") { _, _ ->
+                    viewModelScope.launch {
+                        productService.removerValidade(produto)
+                        carregar()
+                    }
+                }
+                .setNeutralButton("Cancelar", null)
+                .show()
         }
     }
+
 
 }

@@ -27,7 +27,7 @@ import java.util.*
 import com.hs.solutions.hstimecheck_2_0.models.StatusValidade
 import com.hs.solutions.hstimecheck_2_0.models.ValidadeItem
 import com.hs.solutions.hstimecheck_2_0.models.TipoEventoHistorico
-
+import com.hs.solutions.hstimecheck_2_0.core.DateFormatter
 class CadastroProdutoActivity : AppCompatActivity() {
 
     private lateinit var productService: ProductService
@@ -40,6 +40,8 @@ class CadastroProdutoActivity : AppCompatActivity() {
     // FOTO
     private var fotoUriLocal: Uri? = null
     private var fotoFile: File? = null
+    private var statusAtual: StatusProduto? = null
+    private val TAG_STATUS = "STATUS_DEBUG"
 
     // VIEWS
     private lateinit var edtCodigoBarras: EditText
@@ -361,7 +363,7 @@ class CadastroProdutoActivity : AppCompatActivity() {
         // -----------------------------
         // DADOS BÁSICOS
         // -----------------------------
-        val validadeNova = converterData(edtValidade.text.toString())
+        val validadeNova = DateFormatter.brParaIso(edtValidade.text.toString())
         val preco = edtPreco.text.toString().toDoubleOrNull()
 
         val produtoExistente = produtoId?.let { id ->
@@ -423,7 +425,12 @@ class CadastroProdutoActivity : AppCompatActivity() {
             codigoInterno = edtCodigoInterno.text.toString().ifBlank { null },
             descricao = edtDescricao.text.toString(),
             validades = mutableListOf(),
-            historico = mutableListOf()
+            historico = mutableListOf(),
+
+        )
+        android.util.Log.d(
+            TAG_STATUS,
+            "ANTES COPY → produtoBase.status=${produtoBase.status} | statusAtual=$statusAtual"
         )
 
         // -----------------------------
@@ -436,7 +443,13 @@ class CadastroProdutoActivity : AppCompatActivity() {
             validadeAtual = validadeNova,
             quantidadeAtual = total,
             quantidadePorCaixa = qtdPorCaixaFinal,
-            precoAtual = preco
+            precoAtual = preco,
+            status = statusAtual ?: produtoBase.status  // 🔴 FIX
+        )
+
+        android.util.Log.d(
+            TAG_STATUS,
+            "APÓS COPY → produtoFinal.status=${produtoFinal.status}"
         )
 
         // -----------------------------
@@ -484,10 +497,35 @@ class CadastroProdutoActivity : AppCompatActivity() {
 
     private fun excluirProduto() {
         produtoId ?: return
+
         AlertDialog.Builder(this)
             .setTitle("Excluir")
-            .setMessage("Deseja excluir o produto?")
-            .setPositiveButton("Excluir") { _, _ ->
+            .setMessage("Deseja solicitar voltar o preço ao normal antes de excluir?")
+            .setPositiveButton("Sim") { _, _ ->
+
+                val codigo = edtCodigoInterno.text.toString().ifBlank { "—" }
+                val descricao = edtDescricao.text.toString().ifBlank { "—" }
+                val validade = edtValidade.text.toString().ifBlank { "—" }
+
+                val mensagem = """
+                Código: $codigo
+                Produto: $descricao
+                Validade: $validade
+
+                Gentileza voltar o preço.
+                Data esgotada.
+
+                HS TIMECHECK
+            """.trimIndent()
+
+                val intent = Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://wa.me/?text=${Uri.encode(mensagem)}")
+                )
+
+                startActivity(intent)
+
+                // 🔴 APÓS ABRIR O WHATS, EXCLUI NORMAL
                 scope.launch {
                     withContext(Dispatchers.IO) {
                         productService.remover(produtoId!!)
@@ -495,9 +533,19 @@ class CadastroProdutoActivity : AppCompatActivity() {
                     finish()
                 }
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton("Não") { _, _ ->
+                // 🔴 EXCLUI DIRETO (COMPORTAMENTO ATUAL)
+                scope.launch {
+                    withContext(Dispatchers.IO) {
+                        productService.remover(produtoId!!)
+                    }
+                    finish()
+                }
+            }
+            .setNeutralButton("Cancelar", null)
             .show()
     }
+
 
     // ------------------------------------------------------------
     // UTIL
@@ -508,7 +556,7 @@ class CadastroProdutoActivity : AppCompatActivity() {
             edtCodigoBarras.setText(it.codigoBarras)
             edtCodigoInterno.setText(it.codigoInterno)
             edtDescricao.setText(it.descricao)
-            edtValidade.setText(dataParaTela(it.validadeAtual))
+            edtValidade.setText(DateFormatter.isoParaBr(it.validadeAtual))
             edtPreco.setText(it.precoAtual?.toString())
             edtQtdPorCaixa.setText(it.quantidadePorCaixa?.toString())
 
@@ -516,7 +564,11 @@ class CadastroProdutoActivity : AppCompatActivity() {
                 it.quantidadeAtual,
                 it.quantidadePorCaixa
             )
-
+            statusAtual = it.status
+            android.util.Log.d(
+                TAG_STATUS,
+                "CARREGAR → id=${it.id} status=${statusAtual}"
+            )
             edtCaixa.setText(if (cx > 0) cx.toString() else "")
             edtUnidade.setText(if (un > 0) un.toString() else "")
 

@@ -33,7 +33,10 @@ class ProdutosVencendoActivity : AppCompatActivity() {
         adapter = ProdutosVencendoAdapter(
             onAprovacao = { viewModel.enviarParaAprovacao(it) },
             onPreco = { viewModel.trabalharPreco(it) },
-            onExcluir = { viewModel.excluirValidade(it) }
+            onExcluir = { produto, contexto ->
+                viewModel.excluirValidade(produto, contexto)
+            }
+
         )
 
         recyclerView.layoutManager = LinearLayoutManager(this)

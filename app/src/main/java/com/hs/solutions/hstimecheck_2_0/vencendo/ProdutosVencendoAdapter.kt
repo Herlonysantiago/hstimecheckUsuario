@@ -11,11 +11,12 @@ import com.hs.solutions.hstimecheck_2_0.R
 import com.hs.solutions.hstimecheck_2_0.models.Produto
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
-
+import com.hs.solutions.hstimecheck_2_0.core.DateFormatter
+import android.content.Context
 class ProdutosVencendoAdapter(
     private val onAprovacao: (Produto) -> Unit,
     private val onPreco: (Produto) -> Unit,
-    private val onExcluir: (Produto) -> Unit
+    private val onExcluir: (Produto, Context) -> Unit
 ) : RecyclerView.Adapter<ProdutosVencendoAdapter.ViewHolder>() {
 
     private val lista = mutableListOf<Produto>()
@@ -52,7 +53,9 @@ class ProdutosVencendoAdapter(
         fun bind(produto: Produto) {
 
             txtNome.text = produto.descricao
-            txtValidade.text = "Validade: ${produto.validadeAtual ?: "-"}"
+            txtValidade.text =
+                "Validade: ${DateFormatter.isoParaBr(produto.validadeAtual)}"
+
             txtEstoque.text = "Qtd: ${produto.quantidadeAtual ?: 0}"
 
             val validade = produto.validadeAtual
@@ -75,7 +78,10 @@ class ProdutosVencendoAdapter(
 
             btnAprovacao.setOnClickListener { onAprovacao(produto) }
             btnPreco.setOnClickListener { onPreco(produto) }
-            btnExcluir.setOnClickListener { onExcluir(produto) }
+            btnExcluir.setOnClickListener {
+                onExcluir(produto, itemView.context)
+            }
+
         }
     }
 }

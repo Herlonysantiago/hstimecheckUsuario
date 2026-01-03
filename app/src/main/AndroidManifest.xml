@@ -48,6 +48,7 @@
         <activity android:name="com.hs.solutions.hstimecheck_2_0.sobre.SobreActivity"/>
        <activity android:name="com.hs.solutions.hstimecheck_2_0.estoque.VerificacaoEstoqueActivity"/>
        <activity android:name="com.hs.solutions.hstimecheck_2_0.trabalhando_preco.TrabalhandoPrecoActivity"/>
+       <activity android:name="com.hs.solutions.hstimecheck_2_0.importacao.ImportacaoPreviewActivity"/>
         <activity
             android:name=".ui.verificacaoqualidade.VerificacaoQualidadeProdutoActivity"
             android:exported="false" />

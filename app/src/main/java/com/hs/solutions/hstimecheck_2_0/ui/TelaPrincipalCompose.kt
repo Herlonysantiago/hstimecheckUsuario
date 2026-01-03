@@ -10,6 +10,8 @@ import android.os.Handler
 import android.os.Looper
 import kotlinx.coroutines.launch
 import android.widget.Toast
+import com.hs.solutions.hstimecheck_2_0.core. *
+import com.hs.solutions.hstimecheck_2_0.core.DateFormatter
 
 // ================= COMPOSE =================
 import androidx.activity.ComponentActivity
@@ -42,7 +44,6 @@ import coil.compose.AsyncImage
 
 // ================= APP =================
 import com.hs.solutions.hstimecheck_2_0.configuracoes.ConfiguracoesSistemaActivity
-
 import com.hs.solutions.hstimecheck_2_0.R
 import com.hs.solutions.hstimecheck_2_0.core.AppContainer
 import com.hs.solutions.hstimecheck_2_0.core.AppPreferences
@@ -59,6 +60,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import android.net.Uri
 import com.hs.solutions.hstimecheck_2_0.estoque.VerificacaoEstoqueActivity
+import com.hs.solutions.hstimecheck_2_0.importacao.importarPlanilhaRebaixaCsv
 import com.hs.solutions.hstimecheck_2_0.sobre.SobreActivity
 import com.hs.solutions.hstimecheck_2_0.trabalhando_preco.TrabalhandoPrecoActivity
 import com.hs.solutions.hstimecheck_2_0.trabalhando_preco.TrabalhandoPrecoScreen
@@ -66,6 +68,7 @@ import com.hs.solutions.hstimecheck_2_0.ui.verificacaoqualidade.VerificacaoQuali
 import com.hs.solutions.hstimecheck_2_0.vencendo.ProdutosVencendoActivity
 import com.hs.solutions.hstimecheck_2_0.utils.enviarProdutos
 import com.hs.solutions.hstimecheck_2_0.venda.VendaProdutoActivity
+import com.hs.solutions.hstimecheck_2_0.importacao. *
 // =======================================================
 // ACTIVITY PRINCIPAL (ÚNICO onCreate — CORRETO)
 // =======================================================
@@ -422,8 +425,31 @@ fun TelaPrincipal(service: ProductService) {
                         Intent(context, HistoricoGeralActivity::class.java)
                     )
                 },
+                onExportacao = {
+                    scope.launch {
+                        val produtos = service.produtos.value
+                        if (produtos.isEmpty()) {
+                            Toast.makeText(
+                                context,
+                                "Nenhum produto para exportar",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@launch
+                        }
 
-                )
+                        val file = exportarProdutosCsv(context, produtos)
+                        compartilharCsv(context, file)
+
+                    }
+                },
+                onImportacao = {
+                    context.startActivity(
+                        Intent(context, ImportacaoPreviewActivity::class.java)
+                    )
+                }
+            )
+
+
 
         }
     ) {
@@ -814,7 +840,11 @@ fun ProdutoItem(
                     else -> "$total un"
                 }
                 Text(estoqueTexto, style = MaterialTheme.typography.bodySmall)
-                Text("Validade: ${produto.validadeAtual ?: "—"}", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "Validade: ${DateFormatter.isoParaBr(produto.validadeAtual)}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+
 
                 if (produto.status != StatusProduto.NORMAL) {
                     Text(
