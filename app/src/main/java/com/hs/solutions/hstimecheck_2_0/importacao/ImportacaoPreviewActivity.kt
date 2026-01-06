@@ -4,36 +4,28 @@ import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import android.widget.Toast
+import androidx.compose.material3.ExperimentalMaterial3Api
 
-@OptIn(ExperimentalMaterial3Api::class)
 class ImportacaoPreviewActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val resultado = intent.getSerializableExtra("resultado")
-                as? ImportacaoResultado
+        val resultado = ImportacaoHolder.resultado
+            ?: run {
+                finish()
+                return
+            }
 
-        if (resultado == null) {
-            Toast.makeText(
-                this,
-                "Importação ainda não está disponível.\nEm breve estará funcionando.",
-                Toast.LENGTH_LONG
-            ).show()
-
-            finish()
-            return
-        }
 
         setContent {
             ImportacaoPreviewScreen(
@@ -49,8 +41,8 @@ class ImportacaoPreviewActivity : ComponentActivity() {
             )
         }
     }
-
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImportacaoPreviewScreen(
@@ -64,7 +56,7 @@ fun ImportacaoPreviewScreen(
         },
         bottomBar = {
             Row(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth()
                     .padding(12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -74,7 +66,7 @@ fun ImportacaoPreviewScreen(
                 }
                 Button(
                     onClick = onConfirmar,
-                    enabled = resultado.produtosValidos.isNotEmpty()
+                    enabled = resultado.erroFatal == null && resultado.novos.isNotEmpty()
                 ) {
                     Text("Importar")
                 }
@@ -85,41 +77,65 @@ fun ImportacaoPreviewScreen(
         LazyColumn(
             modifier = Modifier
                 .padding(padding)
-                .fillMaxSize()
+                .padding(12.dp)
         ) {
 
+            // 🔴 ERRO FATAL
+            resultado.erroFatal?.let {
+                item {
+                    Text(
+                        text = it,
+                        color = Color.Red,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                return@LazyColumn
+            }
+
+            // ✅ NOVOS
             item {
                 Text(
-                    "Produtos válidos (${resultado.produtosValidos.size})",
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(8.dp)
+                    "Novos produtos (${resultado.novos.size})",
+                    fontWeight = FontWeight.Bold
                 )
             }
 
-            items(resultado.produtosValidos) {
-                Text(
-                    "• ${it.codigoInterno} - ${it.descricao}",
-                    modifier = Modifier.padding(start = 16.dp)
-                )
+            items(resultado.novos) { produto ->
+                Text("• ${produto.codigoInterno ?: "—"} - ${produto.descricao}")
             }
 
+            // ⚠️ DUPLICADOS
+            if (resultado.duplicados.isNotEmpty()) {
+                item {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Duplicados (${resultado.duplicados.size})",
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFF9800)
+                    )
+                }
+
+                items(resultado.duplicados) { produto ->
+                    Text(
+                        "• ${produto.codigoInterno ?: "—"} - ${produto.descricao}",
+                        color = Color(0xFFFF9800)
+                    )
+                }
+            }
+
+            // ❌ ERROS
             if (resultado.erros.isNotEmpty()) {
                 item {
                     Spacer(Modifier.height(12.dp))
                     Text(
                         "Erros encontrados (${resultado.erros.size})",
                         fontWeight = FontWeight.Bold,
-                        color = Color.Red,
-                        modifier = Modifier.padding(8.dp)
+                        color = Color.Red
                     )
                 }
 
-                items(resultado.erros) {
-                    Text(
-                        "Linha ${it.linha}: ${it.motivo}",
-                        color = Color.Red,
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
+                items(resultado.erros) { erro ->
+                    Text("• $erro", color = Color.Red)
                 }
             }
         }

@@ -18,8 +18,10 @@ class ProductService(private val repo: ProductRepository) {
     fun buscarPorCodigoBarrasLocal(codigo: String): Produto? =
         _produtos.value.firstOrNull { it.codigoBarras == codigo }
 
-    fun buscarPorCodigoInternoLocal(codigo: String): Produto? =
-        _produtos.value.firstOrNull { it.codigoInterno == codigo }
+    fun buscarPorCodigoInternoLocal(codigo: String): Produto? {
+        println("🧠 BUSCA LOCAL | codigo=[$codigo] | total_produtos=${_produtos.value.size}")
+        return _produtos.value.firstOrNull { it.codigoInterno == codigo }
+    }
 
     // =========================
     // INSERIR
@@ -48,10 +50,11 @@ class ProductService(private val repo: ProductRepository) {
         }
 
         val statusFinal = if (novo) {
-            StatusRules.aplicarRegraSanitaria(base)
+            StatusProduto.NORMAL
         } else {
-            base.status   // 🔴 NÃO ALTERA STATUS NA EDIÇÃO
+            base.status
         }
+
 
         android.util.Log.d(
             TAG_STATUS,
@@ -308,6 +311,26 @@ class ProductService(private val repo: ProductRepository) {
         // 🔴 EMITE NOVA LISTA (CHAVE DO PROBLEMA)
         _produtos.value = _produtos.value.map {
             if (it.id == produto.id) produto else it
+        }
+    }
+    suspend fun existeDuplicidadeParaImportacao(novo: Produto): Boolean {
+
+        val validade = novo.validadeAtual ?: return false
+        val existentes = repo.carregar() // 🔴 JSON REAL
+
+        return existentes.any { existente ->
+
+            if (existente.validadeAtual != validade) return@any false
+
+            val codigoInternoIgual =
+                !novo.codigoInterno.isNullOrBlank() &&
+                        novo.codigoInterno == existente.codigoInterno
+
+            val codigoBarrasIgual =
+                !novo.codigoBarras.isNullOrBlank() &&
+                        novo.codigoBarras == existente.codigoBarras
+
+            codigoInternoIgual || codigoBarrasIgual
         }
     }
 

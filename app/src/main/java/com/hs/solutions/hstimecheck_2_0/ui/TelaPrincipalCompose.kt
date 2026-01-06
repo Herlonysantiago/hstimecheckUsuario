@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.rememberCoroutineScope
 
+
 // ================= COIL =================
 import coil.compose.AsyncImage
 
@@ -55,7 +56,6 @@ import com.hs.solutions.hstimecheck_2_0.models.StatusProduto
 import com.hs.solutions.hstimecheck_2_0.historico.HistoricoGeralActivity
 import com.hs.solutions.hstimecheck_2_0.ui.FullImageActivity
 // ================= CORROTINAS =================
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import android.net.Uri
@@ -69,50 +69,478 @@ import com.hs.solutions.hstimecheck_2_0.vencendo.ProdutosVencendoActivity
 import com.hs.solutions.hstimecheck_2_0.utils.enviarProdutos
 import com.hs.solutions.hstimecheck_2_0.venda.VendaProdutoActivity
 import com.hs.solutions.hstimecheck_2_0.importacao. *
+import androidx.activity.result.ActivityResultLauncher
+import com.hs.solutions.hstimecheck_2_0.importacao.*
 // =======================================================
 // ACTIVITY PRINCIPAL (ÚNICO onCreate — CORRETO)
 // =======================================================
+
+// ... (mantenha seus imports)
+
 class TelaPrincipalActivity : ComponentActivity() {
+
+    private lateinit var previewLauncher: ActivityResultLauncher<Intent>
+
+    // Launcher para abrir o seletor de arquivos
+    private val selecionarArquivoLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) {
+                iniciarImportacao(uri)
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         AppContainer.init(this)
-        val service = AppContainer.productService
+
+        previewLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                Toast.makeText(this, "Importação confirmada", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         setContent {
             MaterialTheme {
                 AplicarConfiguracoesGlobais()
-                TelaPrincipal(service)
+                // Passamos o launcher de documentos para a Composable
+                TelaPrincipal(AppContainer.productService, selecionarArquivoLauncher)
+            }
+        }
+    }
+
+    private fun abrirPreview() {
+        val intent = Intent(this, ImportacaoPreviewActivity::class.java)
+        previewLauncher.launch(intent)
+    }
+
+
+    private fun iniciarImportacao(uri: Uri) {
+        val importId = "IMP_" + System.currentTimeMillis()
+
+        val resultado = importarPlanilhaRebaixaCsv(
+            context = this,
+            uri = uri,
+            productService = AppContainer.productService,
+            importId = importId
+        )
+
+        ImportacaoHolder.resultado = resultado
+        abrirPreview()
+    }
+
+
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TelaPrincipal(
+    service: ProductService,
+    selecionarArquivoLauncher: ActivityResultLauncher<Array<String>> // Corrigido aqui
+) { // Abertura de chaves adicionada
+
+    // ---------------- STATE ----------------
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    val launcherVenda = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            scope.launch { service.carregar() }
+        }
+    }
+
+    var query by remember { mutableStateOf("") }
+    val produtos by service.produtos.collectAsState()
+    var selectionMode by remember { mutableStateOf(false) }
+    val selectedIds = remember { mutableStateListOf<String>() }
+
+    val launcherCadastro = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            scope.launch { service.carregar() }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        service.carregar()
+    }
+
+    // ---------------- FILTRO ----------------
+    val queryNormalizada = query.trim().lowercase()
+
+    val listaFiltrada = produtos.filter { produto ->
+        if (queryNormalizada.isBlank()) return@filter true
+
+        val descricao = produto.descricao.lowercase()
+        val codigoBarras = produto.codigoBarras?.lowercase() ?: ""
+        val codigoInterno = produto.codigoInterno?.lowercase() ?: ""
+
+        descricao.contains(queryNormalizada) ||
+                codigoBarras.contains(queryNormalizada) ||
+                codigoInterno.contains(queryNormalizada)
+    }
+
+    val grupos = listaFiltrada.groupBy {
+        getDiasRestantes(it.validadeAtual)
+    }
+
+    val chavesOrdenadas = grupos.keys.sorted()
+
+    // ---------------- DRAWER ----------------
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            DrawerMenu(
+                onQueimaPreco = {
+                    context.startActivity(Intent(context, TrabalhandoPrecoActivity::class.java))
+                },
+                onDashboard = {
+                    context.startActivity(Intent(context, PainelOperacionalActivity::class.java))
+                },
+                onEstoque = {
+                    context.startActivity(Intent(context, VerificacaoEstoqueActivity::class.java))
+                },
+                onSobre = {
+                    context.startActivity(Intent(context, SobreActivity::class.java))
+                },
+                onVencimentos = {
+                    context.startActivity(
+                        Intent(context, ProdutosVencendoActivity::class.java)
+                            .putExtra("modo", "VENCENDO")
+                    )
+                },
+                onVencidos = {
+                    context.startActivity(
+                        Intent(context, ProdutosVencendoActivity::class.java)
+                            .putExtra("modo", "VENCIDOS")
+                    )
+                },
+                onAprovacao = {
+                    context.startActivity(Intent(context, AprovacaoComercialActivity::class.java))
+                },
+                onValidadesProduto = {
+                    context.startActivity(Intent(context, VerificacaoQualidadeProdutoActivity::class.java))
+                },
+                onConfiguracoes = {
+                    context.startActivity(Intent(context, ConfiguracoesSistemaActivity::class.java))
+                },
+                onHistorico = {
+                    context.startActivity(Intent(context, HistoricoGeralActivity::class.java))
+                },
+                onExportacao = {
+                    scope.launch {
+                        val listaProdutos = service.produtos.value
+                        if (listaProdutos.isEmpty()) {
+                            Toast.makeText(context, "Nenhum produto para exportar", Toast.LENGTH_SHORT).show()
+                            return@launch
+                        }
+                        val file = exportarProdutosCsv(context, listaProdutos)
+                        compartilharCsv(context, file)
+                    }
+                },
+                onImportacao = {
+                    selecionarArquivoLauncher.launch(arrayOf("text/*"))
+                }
+            )
+        }
+    ) {
+        // ---------------- SCAFFOLD ----------------
+        Scaffold(
+            topBar = {
+                if (selectionMode) {
+                    TopAppBar(
+                        title = { Text("${selectedIds.size} selecionado(s)") },
+                        navigationIcon = {
+                            IconButton(onClick = {
+                                selectionMode = false
+                                selectedIds.clear()
+                            }) {
+                                Icon(Icons.Default.Close, null)
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = {
+                                scope.launch {
+                                    selectedIds.forEach { id ->
+                                        produtos.find { it.id == id }?.let {
+                                            service.mudarStatus(it, StatusProduto.AGUARDANDO_APROVACAO)
+                                        }
+                                    }
+                                    selectionMode = false
+                                    selectedIds.clear()
+                                }
+                            }) {
+                                Icon(Icons.Default.ThumbUp, null)
+                            }
+                            IconButton(onClick = {
+                                scope.launch {
+                                    selectedIds.forEach { id ->
+                                        produtos.find { it.id == id }?.let {
+                                            service.mudarStatus(it, StatusProduto.TRABALHANDO_PRECO)
+                                        }
+                                    }
+                                    selectionMode = false
+                                    selectedIds.clear()
+                                }
+                            }) {
+                                Icon(Icons.Default.LocalFireDepartment, null)
+                            }
+                            IconButton(onClick = {
+                                scope.launch {
+                                    val produto = produtos.firstOrNull { it.id in selectedIds } ?: return@launch
+                                    service.mudarStatus(produto, StatusProduto.VERIFICACAO_ESTOQUE)
+                                    selectionMode = false
+                                    selectedIds.clear()
+                                    context.startActivity(
+                                        Intent(context, VerificacaoEstoqueActivity::class.java)
+                                            .putExtra("produto_id", produto.id)
+                                    )
+                                }
+                            }) {
+                                Icon(Icons.Default.Inventory, null)
+                            }
+                            IconButton(onClick = {
+                                val selecionados = produtos.filter { it.id in selectedIds }
+                                enviarProdutos(context, selecionados)
+                                selectionMode = false
+                                selectedIds.clear()
+                            }) {
+                                Icon(Icons.Default.Send, contentDescription = "Enviar")
+                            }
+                        }
+                    )
+                } else {
+                    TopAppBar(
+                        title = { Text("HS TimeCheck") },
+                        navigationIcon = {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                Icon(Icons.Default.Menu, null)
+                            }
+                        }
+                    )
+                }
+            },
+            floatingActionButton = {
+                if (!selectionMode) {
+                    FloatingActionButton(
+                        onClick = {
+                            launcherCadastro.launch(Intent(context, CadastroProdutoActivity::class.java))
+                        }
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Adicionar")
+                    }
+                }
+            }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+            ) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    singleLine = true,
+                    placeholder = { Text("Buscar produto...") }
+                )
+
+                LazyColumn {
+                    chavesOrdenadas.forEach { chave ->
+                        val grupo = grupos[chave] ?: emptyList()
+                        val label = when {
+                            chave == Int.MAX_VALUE -> "Sem validade"
+                            chave < 0 -> "Vencido"
+                            chave == 0 -> "Hoje"
+                            chave == 1 -> "1 dia restante"
+                            else -> "$chave dias restantes"
+                        }
+
+                        item { SectionHeader(label) }
+
+                        items(items = grupo, key = { it.id }) { produto ->
+                            val isSelected = produto.id in selectedIds
+                            ProdutoItem(
+                                produto = produto,
+                                isSelected = isSelected,
+                                onClick = {
+                                    if (selectionMode) {
+                                        if (isSelected) selectedIds.remove(produto.id)
+                                        else selectedIds.add(produto.id)
+                                        if (selectedIds.isEmpty()) selectionMode = false
+                                    } else {
+                                        context.startActivity(
+                                            Intent(context, CadastroProdutoActivity::class.java)
+                                                .putExtra("produto_id", produto.id)
+                                        )
+                                    }
+                                },
+                                onLongPress = {
+                                    if (!selectionMode) {
+                                        selectionMode = true
+                                        selectedIds.clear()
+                                    }
+                                    selectedIds.add(produto.id)
+                                },
+                                onDoubleClick = {
+                                    produto.validades.forEach { if (it.quantidade == null) it.quantidade = 0 }
+                                    val validadeSelecionada = produto.validades
+                                        .filter { (it.quantidade ?: 0) > 0 }
+                                        .minByOrNull { it.validade }
+                                        ?.validade
+
+                                    if (validadeSelecionada == null) {
+                                        Toast.makeText(context, "Produto sem estoque disponível", Toast.LENGTH_SHORT).show()
+                                        return@ProdutoItem
+                                    }
+
+                                    launcherVenda.launch(
+                                        Intent(context, VendaProdutoActivity::class.java).apply {
+                                            putExtra("produto_id", produto.id)
+                                            putExtra("validade", validadeSelecionada)
+                                        }
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// =======================================================
+// ITEM DO PRODUTO (CORRIGIDO)
+// =======================================================
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun ProdutoItem(
+    produto: Produto,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onLongPress: () -> Unit,
+    onDoubleClick: () -> Unit
+) {
+    val context = LocalContext.current
+    var bloqueado by remember { mutableStateOf(false) }
+    val dias = getDiasRestantes(produto.validadeAtual)
+
+    val corFundo = when {
+        dias == Int.MAX_VALUE -> Color(0xFFF5F5F5)
+        dias < 0 -> Color.Red.copy(alpha = 0.10f)
+        dias <= 2 -> Color(0xFFFFE0E0)
+        dias <= 5 -> Color.Yellow.copy(alpha = 0.10f)
+        else -> Color(0xFFE8F5E9)
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 6.dp, vertical = 3.dp)
+            .combinedClickable(
+                onClick = { if (!bloqueado) onClick() },
+                onLongClick = { if (!bloqueado) onLongPress() },
+                onDoubleClick = {
+                    if (bloqueado) return@combinedClickable
+                    bloqueado = true
+                    onDoubleClick()
+                    Handler(Looper.getMainLooper()).postDelayed({ bloqueado = false }, 600)
+                }
+            ),
+        colors = if (isSelected)
+            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+        else
+            CardDefaults.cardColors(containerColor = corFundo)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 6.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 📸 FOTO
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .border(width = 1.dp, color = Color(0x22000000), shape = RoundedCornerShape(8.dp))
+                    .clickable {
+                        if (!produto.fotoUrl.isNullOrBlank()) {
+                            context.startActivity(
+                                Intent(context, FullImageActivity::class.java)
+                                    .putExtra("fotoUrl", produto.fotoUrl)
+                            )
+                        }
+                    }
+            ) {
+                if (!produto.fotoUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = resolverImagem(produto.fotoUrl!!),
+                        contentDescription = "Foto do produto",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Image,
+                        contentDescription = null,
+                        tint = Color.Gray,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            Column(Modifier.weight(1f)) {
+                Text(
+                    produto.descricao,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1
+                )
+                Text("CB: ${produto.codigoBarras}", style = MaterialTheme.typography.bodySmall)
+                Text("CI: ${produto.codigoInterno ?: "—"}", style = MaterialTheme.typography.bodySmall)
+
+                val total = produto.quantidadeAtual ?: 0
+                val qpc = produto.quantidadePorCaixa
+
+                val estoqueTexto = when {
+                    qpc == 1000 -> {
+                        val kg = total / 1000
+                        val gr = total % 1000
+                        if (gr > 0) "$kg kg • $gr g" else "$kg kg"
+                    }
+                    qpc == -1 -> "$total cx"
+                    qpc != null && qpc > 0 -> {
+                        val cx = total / qpc
+                        val un = total % qpc
+                        if (un > 0) "$cx cx • $un un" else "$cx cx"
+                    }
+                    else -> "$total un"
+                }
+                Text(estoqueTexto, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "Validade: ${DateFormatter.isoParaBr(produto.validadeAtual)}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                // CORREÇÃO DO FINAL DO ARQUIVO
+                if (produto.status != StatusProduto.NORMAL) {
+                    Text(
+                        text = if (produto.status == StatusProduto.TRABALHANDO_PRECO) "Trabalhando Preço" else "Aguardando Aprovação",
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodySmall, // Adicionado bodySmall
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
 }
 
 
-
-
-
-
-// =======================================================
-// CONFIGURAÇÕES GLOBAIS (DataStore)
-// =======================================================
-@Composable
-fun AplicarConfiguracoesGlobais() {
-    val context = LocalContext.current
-
-    LaunchedEffect(Unit) {
-        AppPreferences.read(context, AppPreferences.MODO_ONLINE, true).collect { }
-    }
-
-    LaunchedEffect(Unit) {
-        AppPreferences.read(context, AppPreferences.ALERTA_VALIDADE, true).collect { }
-    }
-
-    LaunchedEffect(Unit) {
-        AppPreferences.read(context, AppPreferences.ALERTA_APROVACAO, true).collect { }
-    }
-}
 
 
 // =======================================================
@@ -294,567 +722,21 @@ fun DrawerMenu(
     }
 }
 
-// =======================================================
-// TELA PRINCIPAL (SUA LÓGICA COMPLETA)
-// =======================================================
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
-fun TelaPrincipal(service: ProductService) {
-
-    // ---------------- STATE ----------------
-    val drawerState = rememberDrawerState(
-        initialValue = DrawerValue.Closed
-    )
-    val scope = rememberCoroutineScope()
+fun AplicarConfiguracoesGlobais() {
     val context = LocalContext.current
-    val launcherVenda =
-        rememberLauncherForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                scope.launch {
-                    service.carregar()
-                }
-            }
-        }
-
-    var query by remember { mutableStateOf("") }
-    val produtos by service.produtos.collectAsState()
-
-    var selectionMode by remember { mutableStateOf(false) }
-    val selectedIds = remember { mutableStateListOf<String>() }
-
-    val launcherCadastro =
-        rememberLauncherForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                scope.launch { service.carregar() }
-            }
-        }
 
     LaunchedEffect(Unit) {
-        service.carregar()
+        AppPreferences.read(context, AppPreferences.MODO_ONLINE, true).collect { }
     }
 
-    // ---------------- FILTRO ----------------
-    val queryNormalizada = query.trim().lowercase()
-
-    val listaFiltrada = produtos.filter { produto ->
-
-        if (queryNormalizada.isBlank()) return@filter true
-
-        val descricao = produto.descricao.lowercase()
-        val codigoBarras = produto.codigoBarras?.lowercase() ?: ""
-        val codigoInterno = produto.codigoInterno?.lowercase() ?: ""
-
-        descricao.contains(queryNormalizada) ||
-                codigoBarras.contains(queryNormalizada) ||
-                codigoInterno.contains(queryNormalizada)
+    LaunchedEffect(Unit) {
+        AppPreferences.read(context, AppPreferences.ALERTA_VALIDADE, true).collect { }
     }
 
-
-
-
-//    val listaFiltrada = produtos.filter {
-//        query.isBlank() ||
-//                it.descricao.contains(query, ignoreCase = true) ||
-//                it.codigoBarras.contains(query)
-//    }
-
-    val grupos = listaFiltrada.groupBy {
-        getDiasRestantes(it.validadeAtual)
-    }
-
-    val chavesOrdenadas = grupos.keys.sorted()
-
-    // ---------------- DRAWER ----------------
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            DrawerMenu(
-                onQueimaPreco = {
-                    context.startActivity(
-                        Intent(context, TrabalhandoPrecoActivity::class.java)
-                    )
-                },
-                onDashboard = {
-                    context.startActivity(
-                        Intent(context, PainelOperacionalActivity::class.java)
-                    )
-                },
-                onEstoque = {
-                    context.startActivity(
-                        Intent(context, VerificacaoEstoqueActivity::class.java)
-                    )
-                },
-                onSobre = {
-                    context.startActivity(
-                        Intent(context, SobreActivity::class.java)
-                    )
-                },
-                onVencimentos = {
-                    context.startActivity(
-                        Intent(context, ProdutosVencendoActivity::class.java)
-                            .putExtra("modo", "VENCENDO")
-                    )
-                },
-                onVencidos = {
-                    context.startActivity(
-                        Intent(context, ProdutosVencendoActivity::class.java)
-                            .putExtra("modo", "VENCIDOS")
-                    )
-                },
-                onAprovacao = {
-                    context.startActivity(
-                        Intent(context, AprovacaoComercialActivity::class.java)
-                    )
-                },
-                onValidadesProduto = {
-                    context.startActivity(
-                        Intent(context, VerificacaoQualidadeProdutoActivity::class.java )
-                    )
-                },
-                onConfiguracoes = {
-                    context.startActivity(
-                        Intent(context, ConfiguracoesSistemaActivity::class.java)
-                    )
-                },
-                onHistorico = {
-                    context.startActivity(
-                        Intent(context, HistoricoGeralActivity::class.java)
-                    )
-                },
-                onExportacao = {
-                    scope.launch {
-                        val produtos = service.produtos.value
-                        if (produtos.isEmpty()) {
-                            Toast.makeText(
-                                context,
-                                "Nenhum produto para exportar",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            return@launch
-                        }
-
-                        val file = exportarProdutosCsv(context, produtos)
-                        compartilharCsv(context, file)
-
-                    }
-                },
-                onImportacao = {
-                    context.startActivity(
-                        Intent(context, ImportacaoPreviewActivity::class.java)
-                    )
-                }
-            )
-
-
-
-        }
-    ) {
-
-        // ---------------- SCAFFOLD ÚNICO ----------------
-        Scaffold(
-            topBar = {
-
-                if (selectionMode) {
-                    TopAppBar(
-                        title = { Text("${selectedIds.size} selecionado(s)") },
-                        navigationIcon = {
-                            IconButton(
-                                onClick = {
-                                    selectionMode = false
-                                    selectedIds.clear()
-                                }
-                            ) {
-                                Icon(Icons.Default.Close, null)
-                            }
-                        },
-                        actions = {
-                            IconButton(onClick = {
-                                scope.launch {
-                                    selectedIds.forEach { id ->
-                                        produtos.find { it.id == id }?.let {
-                                            service.mudarStatus(
-                                                it,
-                                                StatusProduto.AGUARDANDO_APROVACAO
-                                            )
-                                        }
-                                    }
-                                    selectionMode = false
-                                    selectedIds.clear()
-                                }
-                            }) {
-                                Icon(Icons.Default.ThumbUp, null)
-                            }
-
-                            IconButton(onClick = {
-                                scope.launch {
-                                    selectedIds.forEach { id ->
-                                        produtos.find { it.id == id }?.let {
-                                            service.mudarStatus(
-                                                it,
-                                                StatusProduto.TRABALHANDO_PRECO
-                                            )
-                                        }
-                                    }
-                                    selectionMode = false
-                                    selectedIds.clear()
-                                }
-                            }) {
-                                Icon(Icons.Default.LocalFireDepartment, null)
-                            }
-
-                            IconButton(onClick = {
-                                scope.launch {
-                                    val produto = produtos.firstOrNull { it.id in selectedIds }
-                                        ?: return@launch
-
-                                    service.mudarStatus(produto, StatusProduto.VERIFICACAO_ESTOQUE)
-
-                                    selectionMode = false
-                                    selectedIds.clear()
-
-                                    context.startActivity(
-                                        Intent(context, VerificacaoEstoqueActivity::class.java)
-                                            .putExtra("produto_id", produto.id)
-                                    )
-                                }
-                            }) {
-                                Icon(Icons.Default.Inventory, null)
-                            }
-
-                            IconButton(onClick = {
-                                val selecionados = produtos.filter { it.id in selectedIds }
-                                enviarProdutos(context, selecionados)
-
-                                selectionMode = false
-                                selectedIds.clear()
-                            }) {
-                                Icon(Icons.Default.Send, contentDescription = "Enviar")
-                            }
-                        }
-                    )
-                } else {
-                    TopAppBar(
-                        title = { Text("HS TimeCheck") },
-                        navigationIcon = {
-                            IconButton(
-                                onClick = {
-                                    scope.launch { drawerState.open() }
-                                }
-                            ) {
-                                Icon(Icons.Default.Menu, null)
-                            }
-                        }
-                    )
-                }
-            },
-            floatingActionButton = {
-                if (!selectionMode) {
-                    FloatingActionButton(
-                        onClick = {
-                            launcherCadastro.launch(
-                                Intent(context, CadastroProdutoActivity::class.java)
-                            )
-                        }
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Adicionar")
-                    }
-                }
-            }
-        ) { padding ->
-
-            // 🔴 O CONTEÚDO PRECISA ESTAR AQUI DENTRO
-            Column(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-            ) {
-
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    leadingIcon = { Icon(Icons.Default.Search, null) },
-                    singleLine = true,
-                    placeholder = { Text("Buscar produto...") }
-                )
-
-                LazyColumn {
-                    chavesOrdenadas.forEach { chave ->
-
-                        val grupo = grupos[chave] ?: emptyList()
-
-                        val label = when {
-                            chave == Int.MAX_VALUE -> "Sem validade"
-                            chave < 0 -> "Vencido"
-                            chave == 0 -> "Hoje"
-                            chave == 1 -> "1 dia restante"
-                            else -> "$chave dias restantes"
-                        }
-
-                        item {
-                            SectionHeader(label)
-                        }
-
-                        items(
-                            items = grupo,
-                            key = { it.id } // 🔴 chave estável para recomposição
-                        ) { produto ->
-
-                            val isSelected = produto.id in selectedIds
-
-                            ProdutoItem(
-                                produto = produto,
-                                isSelected = isSelected,
-                                onClick = {
-                                    if (selectionMode) {
-                                        if (isSelected) {
-                                            selectedIds.remove(produto.id)
-                                        } else {
-                                            selectedIds.add(produto.id)
-                                        }
-                                        if (selectedIds.isEmpty()) {
-                                            selectionMode = false
-                                        }
-                                    } else {
-                                        context.startActivity(
-                                            Intent(
-                                                context,
-                                                CadastroProdutoActivity::class.java
-                                            ).putExtra("produto_id", produto.id)
-                                        )
-                                    }
-                                },
-                                onLongPress = {
-                                    if (!selectionMode) {
-                                        selectionMode = true
-                                        selectedIds.clear()
-                                    }
-                                    selectedIds.add(produto.id)
-                                },
-                                onDoubleClick = {
-                                    // Normaliza validades
-                                    produto.validades.forEach {
-                                        if (it.quantidade == null) it.quantidade = 0
-                                    }
-
-                                    val validadeSelecionada = produto.validades
-                                        .filter { (it.quantidade ?: 0) > 0 }
-                                        .minByOrNull { it.validade }
-                                        ?.validade
-
-                                    if (validadeSelecionada == null) {
-                                        Toast.makeText(
-                                            context,
-                                            "Produto sem estoque disponível",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        return@ProdutoItem
-                                    }
-
-                                    launcherVenda.launch(
-                                        Intent(context, VendaProdutoActivity::class.java).apply {
-                                            putExtra("produto_id", produto.id)
-                                            putExtra("validade", validadeSelecionada)
-                                        }
-                                    )
-                                }
-                            )
-                        }
-
-                    }
-                }
-            }
-        }
+    LaunchedEffect(Unit) {
+        AppPreferences.read(context, AppPreferences.ALERTA_APROVACAO, true).collect { }
     }
 }
 
-
-
-// =======================================================
-// ITEM DO PRODUTO (COMPLETO)
-// =======================================================
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun ProdutoItem(
-    produto: Produto,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    onLongPress: () -> Unit,
-    onDoubleClick: () -> Unit
-) {
-    val context = LocalContext.current
-    var bloqueado by remember { mutableStateOf(false) }
-    val dias = getDiasRestantes(produto.validadeAtual)
-
-    val corFundo = when {
-        dias == Int.MAX_VALUE -> Color(0xFFF5F5F5)
-        dias < 0 -> Color.Red.copy(alpha = 0.10f)
-        dias <= 2 -> Color(0xFFFFE0E0)
-        dias <= 5 -> Color.Yellow.copy(alpha = 0.10f)
-        else -> Color(0xFFE8F5E9)
-    }
-
-    val statusBadges = mutableListOf<Pair<String, Color>>()
-
-    when (produto.status) {
-        StatusProduto.AGUARDANDO_APROVACAO ->
-            statusBadges += "Aguardando aprovação" to Color(0xFFFF9800)
-
-        StatusProduto.TRABALHANDO_PRECO ->
-            statusBadges += "Trabalhando preço" to Color(0xFFD32F2F)
-
-        else -> {}
-    }
-
-    if (produto.emVerificacaoEstoque) {
-        statusBadges += "Verificação estoque" to Color(0xFF1976D2)
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 3.dp)
-            .combinedClickable(
-                onClick = {
-                    if (!bloqueado) {
-                        onClick()
-                    }
-                },
-                onLongClick = {
-                    if (!bloqueado) {
-                        onLongPress()
-                    }
-                },
-                onDoubleClick = {
-                    if (bloqueado) return@combinedClickable
-                    bloqueado = true
-
-                    onDoubleClick()
-
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        bloqueado = false
-                    }, 600)
-                }
-            )
-        ,
-        colors = if (isSelected)
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-            )
-        else
-            CardDefaults.cardColors(containerColor = corFundo)
-    ) {
-
-
-    Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            // 📸 FOTO (clique simples + duplo clique)
-        Box(
-            modifier = Modifier
-                .size(42.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .border(
-                    width = 1.dp,
-                    color = Color(0x22000000),
-                    shape = RoundedCornerShape(8.dp)
-                )
-                .clickable {
-                    if (!produto.fotoUrl.isNullOrBlank()) {
-                        context.startActivity(
-                            Intent(context, FullImageActivity::class.java)
-                                .putExtra("fotoUrl", produto.fotoUrl)
-                        )
-                    }
-                }
-        ) {
-            if (!produto.fotoUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = resolverImagem(produto.fotoUrl!!),
-                    contentDescription = "Foto do produto",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.Image,
-                    contentDescription = null,
-                    tint = Color.Gray,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
-        }
-
-
-            Spacer(Modifier.width(8.dp))
-
-            Column(Modifier.weight(1f)) {
-
-                Text(
-                    produto.descricao,
-                    fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1
-                )
-
-                Text(
-                    "CB: ${produto.codigoBarras}",
-                    style = MaterialTheme.typography.bodySmall
-                )
-
-                Text(
-                    "CI: ${produto.codigoInterno ?: "—"}",
-                    style = MaterialTheme.typography.bodySmall
-                )
-
-
-
-                val total = produto.quantidadeAtual ?: 0
-                val qpc = produto.quantidadePorCaixa
-
-                val estoqueTexto = when {
-                    // Se o multiplicador for 1000, tratamos como conversão de Gramas para KG
-                    qpc == 1000 -> {
-                        val kg = total / 1000
-                        val gr = total % 1000
-                        if (gr > 0) "$kg kg • $gr g" else "$kg kg"
-                    }
-
-                    // Suas regras originais para caixas e unidades
-                    qpc == -1 -> "$total cx"
-                    qpc != null && qpc > 0 -> {
-                        val cx = total / qpc
-                        val un = total % qpc
-                        if (un > 0) "$cx cx • $un un" else "$cx cx"
-                    }
-                    else -> "$total un"
-                }
-                Text(estoqueTexto, style = MaterialTheme.typography.bodySmall)
-                Text(
-                    "Validade: ${DateFormatter.isoParaBr(produto.validadeAtual)}",
-                    style = MaterialTheme.typography.bodySmall
-                )
-
-
-                if (produto.status != StatusProduto.NORMAL) {
-                    Text(
-                        text = if(produto.status == StatusProduto.TRABALHANDO_PRECO) "Trabalhando Preço" else "Aguardando Aprovação",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-    }
-    }
-}

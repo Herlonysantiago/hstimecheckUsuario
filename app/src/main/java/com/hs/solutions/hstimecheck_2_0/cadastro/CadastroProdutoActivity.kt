@@ -485,11 +485,26 @@ class CadastroProdutoActivity : AppCompatActivity() {
         // SALVAR
         // -----------------------------
         scope.launch {
-            withContext(Dispatchers.IO) {
-                productService.inserirOuAtualizar(produtoFinal)
+            try {
+                withContext(Dispatchers.IO) {
+                    productService.inserirOuAtualizar(produtoFinal)
+                }
+                finish()
+            } catch (e: IllegalStateException) {
+                Toast.makeText(
+                    this@CadastroProdutoActivity,
+                    e.message ?: "Produto duplicado",
+                    Toast.LENGTH_LONG
+                ).show()
+            } catch (e: Exception) {
+                Toast.makeText(
+                    this@CadastroProdutoActivity,
+                    "Erro ao salvar o produto",
+                    Toast.LENGTH_LONG
+                ).show()
             }
-            finish()
         }
+
     }
 
 

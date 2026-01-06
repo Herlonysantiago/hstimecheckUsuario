@@ -21,6 +21,8 @@ data class Produto(
     var fotpLocal: String? = null,
 
     val validades: MutableList<ValidadeItem> = mutableListOf(),
-    val historico: MutableList<HistoricoItem> = mutableListOf()
+    val historico: MutableList<HistoricoItem> = mutableListOf(),
+    val importId: String? = null
+
 )
 
