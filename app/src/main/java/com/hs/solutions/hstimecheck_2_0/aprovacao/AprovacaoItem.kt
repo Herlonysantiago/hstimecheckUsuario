@@ -3,10 +3,13 @@ package com.hs.solutions.hstimecheck_2_0.aprovacao
 data class AprovacaoItem(
     val id: String,
     val descricao: String,
-    val codigo: String,
+    val codigoInterno: String?,
+    val codigoBarras: String?,
+    val validade: String?,
     var precoAtual: Double,
     var precoSugerido: Double
-) {
+)
+{
     val diferencaPercentual: Int
         get() {
             if (precoAtual == 0.0) return 0

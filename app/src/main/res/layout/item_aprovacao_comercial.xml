@@ -21,17 +21,26 @@
             android:id="@+id/txtDescricao"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Descrição do Produto"
             android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
             android:textStyle="bold"/>
 
-        <!-- CÓDIGO -->
+        <!-- CÓDIGO INTERNO (clicável) -->
         <TextView
-            android:id="@+id/txtCodigo"
+            android:id="@+id/txtCodigoInterno"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Código: 00000000"
             android:paddingTop="4dp"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textColor="?attr/colorPrimary"
+            android:clickable="true"
+            android:focusable="true"/>
+
+        <!-- VALIDADE -->
+        <TextView
+            android:id="@+id/txtValidade"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingTop="2dp"
             android:textAppearance="@style/TextAppearance.Material3.BodyMedium"/>
 
         <!-- PREÇO ATUAL -->
@@ -39,7 +48,6 @@
             android:id="@+id/txtPrecoAtual"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Preço atual: R$ 0,00"
             android:paddingTop="6dp"
             android:textAppearance="@style/TextAppearance.Material3.BodyMedium"/>
 
@@ -48,7 +56,6 @@
             android:id="@+id/txtPrecoSugerido"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Sugerido: R$ 0,00"
             android:paddingTop="2dp"
             android:textAppearance="@style/TextAppearance.Material3.BodyMedium"/>
 
@@ -57,7 +64,6 @@
             android:id="@+id/txtDiferenca"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="0%"
             android:paddingTop="8dp"
             android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
             android:textStyle="bold"/>
@@ -90,7 +96,6 @@
                 android:layout_height="wrap_content"
                 android:text="Aprovar"
                 android:layout_marginStart="8dp"/>
-
         </LinearLayout>
 
     </LinearLayout>

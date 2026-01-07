@@ -333,5 +333,68 @@ class ProductService(private val repo: ProductRepository) {
             codigoInternoIgual || codigoBarrasIgual
         }
     }
+    suspend fun inserirOuAtualizarParaQualidade(produto: Produto) {
+
+        val existentes = repo.carregar()
+
+        val existente = existentes.firstOrNull {
+            (!produto.codigoInterno.isNullOrBlank() &&
+                    it.codigoInterno == produto.codigoInterno) ||
+                    (!produto.codigoBarras.isNullOrBlank() &&
+                            it.codigoBarras == produto.codigoBarras)
+        }
+
+        if (existeDuplicidade(produto)) {
+            throw IllegalStateException(
+                "Já existe um produto com o mesmo código e a mesma validade."
+            )
+        }
+
+        val base = if (existente != null) {
+            produto.copy(
+                id = existente.id,
+                historico = existente.historico.toMutableList()
+            )
+        } else {
+            produto.copy()
+        }
+
+        val novo = existente == null
+
+        if (novo) {
+            base.historico.add(
+                HistoryService.cadastro(base)
+            )
+        } else {
+            val anterior = existente
+            val novaValidade = base.validadeAtual
+
+            if (
+                anterior != null &&
+                novaValidade != null &&
+                anterior.validadeAtual != novaValidade
+            ) {
+                base.historico.add(
+                    HistoryService.validadeAdicionada(
+                        produto = base,
+                        validade = novaValidade,
+                        quantidade = base.quantidadeAtual
+                    )
+                )
+            }
+        }
+
+        val statusFinal = if (novo) {
+            StatusProduto.NORMAL
+        } else {
+            base.status
+        }
+
+        repo.salvar(
+            base.copy(status = statusFinal)
+        )
+
+        carregar()
+    }
 
 }

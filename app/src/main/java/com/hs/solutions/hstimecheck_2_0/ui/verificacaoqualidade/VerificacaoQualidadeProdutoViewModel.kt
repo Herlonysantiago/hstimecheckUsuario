@@ -10,7 +10,7 @@ import com.hs.solutions.hstimecheck_2_0.models.HistoricoItem
 import com.hs.solutions.hstimecheck_2_0.models.Produto
 import kotlinx.coroutines.launch
 import android.util.Log
-
+import com.hs.solutions.hstimecheck_2_0.models.TipoEventoHistorico
 class VerificacaoQualidadeProdutoViewModel(
     private val productService: ProductService
 ) : ViewModel() {
@@ -73,16 +73,21 @@ class VerificacaoQualidadeProdutoViewModel(
                 )
             }
 
-            historicoValidades = encontrado.historico
+            val produtoLocal = produto ?: return@launch
+
+            historicoValidades = produtoLocal.historico
                 .filter { !it.validade.isNullOrBlank() }
                 .groupBy { it.validade }
-                .map { (_, eventos) ->
-                    eventos.last()   // ✅ último evento real daquela validade
+                .mapNotNull { (_, eventosDaValidade) ->
+                    eventosDaValidade.maxByOrNull { it.dataEvento }
                 }
-                .sortedByDescending { it.dataEvento }
+                .sortedBy { it.validade }
 
+            Log.e(
+                "DEBUG_VAL",
+                "Total de eventos no histórico: ${produtoLocal.historico.size}"
+            )
 
             carregando = false
-        }
-    }
+    }   }
 }

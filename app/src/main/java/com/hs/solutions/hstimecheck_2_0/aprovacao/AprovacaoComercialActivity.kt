@@ -14,7 +14,12 @@ import com.hs.solutions.hstimecheck_2_0.core.AppContainer
 import com.hs.solutions.hstimecheck_2_0.models.StatusProduto
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-
+import android.content.Intent
+import android.net.Uri
+import java.net.URLEncoder
+import android.widget.ImageView
+import com.hs.solutions.hstimecheck_2_0.ui.*
+import com.hs.solutions.hstimecheck_2_0.core.*
 class AprovacaoComercialActivity : AppCompatActivity() {
 
     private lateinit var adapter: AprovacaoAdapter
@@ -48,10 +53,13 @@ class AprovacaoComercialActivity : AppCompatActivity() {
                     AprovacaoItem(
                         id = p.id,
                         descricao = p.descricao,
-                        codigo = p.codigoBarras,
+                        codigoInterno = p.codigoInterno,
+                        codigoBarras = p.codigoBarras,
+                        validade = p.validadeAtual,
                         precoAtual = precoAtual,
                         precoSugerido = (precoAtual - 2.0).coerceAtLeast(0.0)
                     )
+
                 }
         )
     }
@@ -60,84 +68,59 @@ class AprovacaoComercialActivity : AppCompatActivity() {
         adapter = AprovacaoAdapter(
             listaExibida,
 
-            // ✔ APROVAR
+            // ✅ APROVAR — exatamente como antes
             onAprovar = { item ->
-                val produto = productService.getProdutoById(item.id) ?: return@AprovacaoAdapter
-                val edtPrecoAprovado = EditText(this).apply {
-                    hint = "Preço aprovado"
-                    inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
-                    setText(item.precoSugerido.toString())
-                }
+                abrirDialogAprovarPreco(item)
+            }
+            ,
 
-                AlertDialog.Builder(this)
-                    .setTitle("Aprovação Comercial")
-                    .setView(edtPrecoAprovado)
-                    .setPositiveButton("Aprovar", null)
-                    .setNegativeButton("Cancelar", null)
-                    .create()
-                    .also { dialog ->
-                        dialog.setOnShowListener {
-                            dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                                .setOnClickListener {
-
-                                    val precoAprovado =
-                                        edtPrecoAprovado.text.toString().toDoubleOrNull()
-
-                                    if (precoAprovado == null) {
-                                        Toast.makeText(
-                                            this,
-                                            "Preço inválido",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        return@setOnClickListener
-                                    }
-
-                                    dialog.dismiss()
-
-                                    lifecycleScope.launch {
-                                        productService.aprovarComercial(
-                                            produto = produto,
-                                            precoAprovado = precoAprovado,
-
-                                        )
-
-
-                                        listaExibida.remove(item)
-                                        adapter.notifyDataSetChanged()
-
-                                        if (listaExibida.isEmpty()) {
-                                            Toast.makeText(
-                                                this@AprovacaoComercialActivity,
-                                                "Nenhum produto aguardando aprovação",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    }
-                                }
-                        }
-                    }
-                    .show()
-            },
-
-            // ✔ REJEITAR
+            // ✅ REJEITAR — exatamente como antes
             onRejeitar = { item ->
-                val produto = productService.getProdutoById(item.id) ?: return@AprovacaoAdapter
-
                 lifecycleScope.launch {
-                    productService.rejeitarComercial(produto, "Rejeitado na aprovação")
-                    listaExibida.remove(item)
+                    val produto = productService.getProdutoById(item.id) ?: return@launch
+
+                    productService.rejeitarComercial(
+                        produto = produto,
+                        motivo = "Preço rejeitado na aprovação comercial"
+                    )
+
+                    Toast.makeText(
+                        this@AprovacaoComercialActivity,
+                        "Preço rejeitado",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    carregarDados()
                     adapter.notifyDataSetChanged()
                 }
             },
 
-            // ✔ EDITAR
+            // ✏️ EDITAR — já estava correto
             onEditar = { item ->
                 abrirDialogEditarPreco(item)
+            },
+
+            // 👆 Clique simples → código de barras
+            onClickCodigoBarras = { codigo ->
+                abrirCodigoBarras(codigo)
+            },
+
+            // 👆👆 Clique longo → WhatsApp
+            onLongClickWhatsapp = { item ->
+                abrirDialogWhatsapp(item)
             }
         )
 
         recyclerView.adapter = adapter
     }
+
+    private fun abrirCodigoBarras(codigo: String) {
+        val intent = Intent(this, FullImageActivity::class.java)
+        intent.putExtra("isBarcode", true)
+        intent.putExtra("barcodeContent", codigo)
+        startActivity(intent)
+    }
+
 
     private fun abrirDialogEditarPreco(item: AprovacaoItem) {
         val layout = LinearLayout(this).apply {
@@ -180,5 +163,75 @@ class AprovacaoComercialActivity : AppCompatActivity() {
             .setNegativeButton("Cancelar", null)
             .show()
     }
+    private fun abrirDialogWhatsapp(item: AprovacaoItem) {
+
+        val mensagem = buildString {
+            append("Ola?\n\n")
+            append("Ja tivemos retorno do comprodor? \n\n")
+            append("Produto: ${item.descricao}\n")
+            append("Código interno: ${item.codigoInterno}\n")
+            append("Validade: ${item.validade}\n")
+            append("Preço sugerido: R$ %.2f\n\n".format(item.precoSugerido))
+            append("HS")
+        }
+
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse(
+                "https://wa.me/?text=${URLEncoder.encode(mensagem, "UTF-8")}"
+            )
+        }
+
+        startActivity(intent)
+    }
+    private fun abrirDialogAprovarPreco(item: AprovacaoItem) {
+
+        val edtPrecoAprovado = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            hint = "Preço aprovado"
+            setText(item.precoSugerido.toString())
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Aprovar preço")
+            .setMessage("Informe o preço aprovado")
+            .setView(edtPrecoAprovado)
+            .setPositiveButton("Aprovar") { _, _ ->
+
+                val precoAprovado = edtPrecoAprovado.text
+                    .toString()
+                    .toDoubleOrNull()
+
+                if (precoAprovado == null) {
+                    Toast.makeText(
+                        this,
+                        "Preço inválido",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@setPositiveButton
+                }
+
+                lifecycleScope.launch {
+                    val produto = productService.getProdutoById(item.id)
+                        ?: return@launch
+
+                    productService.aprovarComercial(
+                        produto = produto,
+                        precoAprovado = precoAprovado
+                    )
+
+                    Toast.makeText(
+                        this@AprovacaoComercialActivity,
+                        "Preço aprovado com sucesso",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    carregarDados()
+                    adapter.notifyDataSetChanged()
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
 }
 
