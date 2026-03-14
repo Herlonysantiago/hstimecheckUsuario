@@ -184,6 +184,7 @@ fun TelaPrincipal(
     }
 
     val chavesOrdenadas = grupos.keys.sorted()
+    var mostrarConfirmacaoExcluirVencidos by remember { mutableStateOf(false) }
     var mostrarConfirmacaoExcluir by remember { mutableStateOf(false) }
     // ---------------- DRAWER ----------------
     ModalNavigationDrawer(
@@ -245,82 +246,122 @@ fun TelaPrincipal(
     ) {
         // ---------------- SCAFFOLD ---------------
         Scaffold(
-
             topBar = {
                 if (selectionMode) {
+
                     TopAppBar(
                         title = { Text("${selectedIds.size} Selec.") },
+
                         navigationIcon = {
-                            IconButton(onClick = {
-                                selectionMode = false
-                                selectedIds.clear()
-                            }) {
-                                Icon(Icons.Default.Close, null)
+                            IconButton(
+                                onClick = {
+                                    selectionMode = false
+                                    selectedIds.clear()
+                                }
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Cancelar seleção")
                             }
                         },
+
                         actions = {
-                            IconButton(onClick = {
-                                mostrarConfirmacaoExcluir = true
-                            }) {
+
+                            IconButton(
+                                onClick = { mostrarConfirmacaoExcluir = true }
+                            ) {
                                 Icon(Icons.Default.Delete, contentDescription = "Excluir")
                             }
-                            IconButton(onClick = {
-                                scope.launch {
-                                    selectedIds.forEach { id ->
-                                        produtos.find { it.id == id }?.let {
-                                            service.mudarStatus(it, StatusProduto.AGUARDANDO_APROVACAO)
+
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        selectedIds.forEach { id ->
+                                            produtos.find { it.id == id }?.let {
+                                                service.mudarStatus(it, StatusProduto.AGUARDANDO_APROVACAO)
+                                            }
                                         }
+                                        selectionMode = false
+                                        selectedIds.clear()
                                     }
-                                    selectionMode = false
-                                    selectedIds.clear()
                                 }
-                            }) {
-                                Icon(Icons.Default.ThumbUp, null)
+                            ) {
+                                Icon(Icons.Default.ThumbUp, contentDescription = "Enviar para aprovação")
                             }
-                            IconButton(onClick = {
-                                scope.launch {
-                                    selectedIds.forEach { id ->
-                                        produtos.find { it.id == id }?.let {
-                                            service.mudarStatus(it, StatusProduto.TRABALHANDO_PRECO)
+
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        selectedIds.forEach { id ->
+                                            produtos.find { it.id == id }?.let {
+                                                service.mudarStatus(it, StatusProduto.TRABALHANDO_PRECO)
+                                            }
                                         }
+                                        selectionMode = false
+                                        selectedIds.clear()
                                     }
+                                }
+                            ) {
+                                Icon(Icons.Default.LocalFireDepartment, contentDescription = "Trabalhar preço")
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        val produto = produtos.firstOrNull { it.id in selectedIds } ?: return@launch
+                                        service.mudarStatus(produto, StatusProduto.VERIFICACAO_ESTOQUE)
+
+                                        selectionMode = false
+                                        selectedIds.clear()
+
+                                        context.startActivity(
+                                            Intent(context, VerificacaoEstoqueActivity::class.java)
+                                                .putExtra("produto_id", produto.id)
+                                        )
+                                    }
+                                }
+                            ) {
+                                Icon(Icons.Default.Inventory, contentDescription = "Verificar estoque")
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    val selecionados = produtos.filter { it.id in selectedIds }
+                                    enviarProdutos(context, selecionados)
+
                                     selectionMode = false
                                     selectedIds.clear()
                                 }
-                            }) {
-                                Icon(Icons.Default.LocalFireDepartment, null)
-                            }
-                            IconButton(onClick = {
-                                scope.launch {
-                                    val produto = produtos.firstOrNull { it.id in selectedIds } ?: return@launch
-                                    service.mudarStatus(produto, StatusProduto.VERIFICACAO_ESTOQUE)
-                                    selectionMode = false
-                                    selectedIds.clear()
-                                    context.startActivity(
-                                        Intent(context, VerificacaoEstoqueActivity::class.java)
-                                            .putExtra("produto_id", produto.id)
-                                    )
-                                }
-                            }) {
-                                Icon(Icons.Default.Inventory, null)
-                            }
-                            IconButton(onClick = {
-                                val selecionados = produtos.filter { it.id in selectedIds }
-                                enviarProdutos(context, selecionados)
-                                selectionMode = false
-                                selectedIds.clear()
-                            }) {
+                            ) {
                                 Icon(Icons.Default.Send, contentDescription = "Enviar")
                             }
                         }
                     )
+
                 } else {
+
                     TopAppBar(
                         title = { Text("HS TimeCheck") },
+
                         navigationIcon = {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(Icons.Default.Menu, null)
+                            IconButton(
+                                onClick = { scope.launch { drawerState.open() } }
+                            ) {
+                                Icon(Icons.Default.Menu, contentDescription = "Menu")
                             }
+                        },
+
+                        actions = {
+
+                            IconButton(
+                                onClick = {
+                                    mostrarConfirmacaoExcluirVencidos = true
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.DeleteForever,
+                                    contentDescription = "Excluir vencidos"
+                                )
+                            }
+
                         }
                     )
                 }
@@ -458,6 +499,63 @@ fun TelaPrincipal(
             dismissButton = {
                 TextButton(
                     onClick = { mostrarConfirmacaoExcluir = false }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    if (mostrarConfirmacaoExcluirVencidos) {
+
+        AlertDialog(
+            onDismissRequest = {
+                mostrarConfirmacaoExcluirVencidos = false
+            },
+
+            title = {
+                Text("Excluir vencidos")
+            },
+
+            text = {
+                Text("Deseja excluir todos os produtos vencidos?")
+            },
+
+            confirmButton = {
+                TextButton(
+                    onClick = {
+
+                        scope.launch {
+
+                            val vencidos = service.produtos.value.filter {
+                                getDiasRestantes(it.validadeAtual) < 0
+                            }
+
+                            vencidos.forEach {
+                                service.remover(it.id)
+                            }
+
+                            service.carregar()
+
+                            Toast.makeText(
+                                context,
+                                "${vencidos.size} produtos vencidos excluídos",
+                                Toast.LENGTH_SHORT
+                            ).show()
+
+                            mostrarConfirmacaoExcluirVencidos = false
+                        }
+                    }
+                ) {
+                    Text("Excluir")
+                }
+            },
+
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        mostrarConfirmacaoExcluirVencidos = false
+                    }
                 ) {
                     Text("Cancelar")
                 }
