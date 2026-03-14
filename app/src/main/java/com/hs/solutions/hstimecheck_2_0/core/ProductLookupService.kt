@@ -10,7 +10,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class ProductLookupService(private val context: Context) {
-
+    fun getCache(): List<ProdutoJsonEntrada> {
+        return cache ?: emptyList()
+    }
     companion object {
         private var cache: List<ProdutoJsonEntrada>? = null
         private var carregado = false

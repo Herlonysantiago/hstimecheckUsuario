@@ -28,6 +28,7 @@ import com.hs.solutions.hstimecheck_2_0.models.StatusValidade
 import com.hs.solutions.hstimecheck_2_0.models.ValidadeItem
 import com.hs.solutions.hstimecheck_2_0.models.TipoEventoHistorico
 import com.hs.solutions.hstimecheck_2_0.core.DateFormatter
+import com.hs.solutions.hstimecheck_2_0.pesquisa.PesquisaProdutoActivity
 class CadastroProdutoActivity : AppCompatActivity() {
 
     private lateinit var productService: ProductService
@@ -102,7 +103,29 @@ class CadastroProdutoActivity : AppCompatActivity() {
                 carregarDadosJson()
             }
         }
+    private val launcherPesquisaProduto =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
 
+                val codigoBarras = result.data?.getStringExtra("codigo")          // compatível com fluxo atual
+                val codigoInterno = result.data?.getStringExtra("codigo_interno") // novo
+                val descricao = result.data?.getStringExtra("descricao")
+
+                if (!codigoInterno.isNullOrBlank()) {
+                    edtCodigoInterno.setText(codigoInterno)
+                }
+
+                if (!codigoBarras.isNullOrBlank()) {
+                    edtCodigoBarras.setText(codigoBarras)
+                }
+
+                if (!descricao.isNullOrBlank()) {
+                    edtDescricao.setText(descricao)
+                }
+
+                carregarDadosJson()
+            }
+        }
     // ------------------------------------------------------------
     // LIFECYCLE
     // ------------------------------------------------------------
@@ -164,7 +187,7 @@ class CadastroProdutoActivity : AppCompatActivity() {
 
         setupButtons()
     }
-
+    private var ultimoCliqueBuscar = 0L
     private fun initViews() {
         edtCodigoBarras = findViewById(R.id.edtCodigoBarras)
         edtCodigoInterno = findViewById(R.id.edtCodigoInterno)
@@ -311,7 +334,25 @@ class CadastroProdutoActivity : AppCompatActivity() {
     // ------------------------------------------------------------
 
     private fun setupButtons() {
-        btnBuscar.setOnClickListener { buscarProdutoCadastro() }
+
+        btnBuscar.setOnClickListener {
+
+            val agora = System.currentTimeMillis()
+
+            if (agora - ultimoCliqueBuscar < 350) {
+
+                // DUPLO CLIQUE → abre pesquisa da base
+                val intent = Intent(this, PesquisaProdutoActivity::class.java)
+                launcherPesquisaProduto.launch(intent)
+
+            } else {
+
+                // CLIQUE NORMAL → busca atual
+                buscarProdutoCadastro()
+            }
+
+            ultimoCliqueBuscar = agora
+        }
 // Dentro de setupButtons() ou no final do onCreate()
         imgBarcodePreview.setOnClickListener {
 
