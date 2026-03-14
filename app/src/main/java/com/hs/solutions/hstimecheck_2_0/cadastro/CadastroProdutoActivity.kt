@@ -68,7 +68,16 @@ class CadastroProdutoActivity : AppCompatActivity() {
     // ------------------------------------------------------------
 
     private lateinit var launcherCamera: ActivityResultLauncher<Uri>
+    private fun montarDescricao(descricao: String?, complemento: String?): String {
+        val d = descricao?.trim().orEmpty()
+        val c = complemento?.trim().orEmpty()
 
+        return when {
+            d.isNotEmpty() && c.isNotEmpty() -> "$d - $c"
+            d.isNotEmpty() -> d
+            else -> c
+        }
+    }
     private val launcherGaleria =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri ?: return@registerForActivityResult
@@ -110,7 +119,11 @@ class CadastroProdutoActivity : AppCompatActivity() {
                 val codigoBarras = result.data?.getStringExtra("codigo")          // compatível com fluxo atual
                 val codigoInterno = result.data?.getStringExtra("codigo_interno") // novo
                 val descricao = result.data?.getStringExtra("descricao")
+                val complemento = result.data?.getStringExtra("complemento")
 
+                if (!descricao.isNullOrBlank() || !complemento.isNullOrBlank()) {
+                    edtDescricao.setText(montarDescricao(descricao, complemento))
+                }
                 if (!codigoInterno.isNullOrBlank()) {
                     edtCodigoInterno.setText(codigoInterno)
                 }
@@ -234,9 +247,9 @@ class CadastroProdutoActivity : AppCompatActivity() {
             if (edtCodigoBarras.text.isBlank())
                 edtCodigoBarras.setText(item.bar_cod?.toString() ?: "")
 
-            if (edtDescricao.text.isBlank())
-                edtDescricao.setText(item.descricao ?: item.complemento ?: "")
-
+            if (edtDescricao.text.isBlank()) {
+                edtDescricao.setText(montarDescricao(item.descricao, item.complemento))
+            }
             // 🔴 AQUI ESTÁ A CORREÇÃO
             extrairInfoCaixa(item.complemento)?.let {
                 if (edtQtdPorCaixa.text.isNullOrBlank()) {
@@ -316,7 +329,7 @@ class CadastroProdutoActivity : AppCompatActivity() {
             }
 
             if (edtDescricao.text.isNullOrBlank()) {
-                edtDescricao.setText(item.descricao ?: item.complemento ?: "")
+                edtDescricao.setText(montarDescricao(item.descricao, item.complemento))
             }
 
             extrairInfoCaixa(item.complemento)?.let {
@@ -608,28 +621,61 @@ class CadastroProdutoActivity : AppCompatActivity() {
     // ------------------------------------------------------------
 
     private fun carregarProdutoExistente(id: String) {
-        productService.produtos.value.find { it.id == id }?.let {
-            edtCodigoBarras.setText(it.codigoBarras)
-            edtCodigoInterno.setText(it.codigoInterno)
-            edtDescricao.setText(it.descricao)
-            edtValidade.setText(DateFormatter.isoParaBr(it.validadeAtual))
-            edtPreco.setText(it.precoAtual?.toString())
-            edtQtdPorCaixa.setText(it.quantidadePorCaixa?.toString())
+
+        productService.produtos.value.find { it.id == id }?.let { produto ->
+
+            edtCodigoBarras.setText(produto.codigoBarras)
+            edtCodigoInterno.setText(produto.codigoInterno)
+            edtDescricao.setText(produto.descricao)
+
+            edtValidade.setText(DateFormatter.isoParaBr(produto.validadeAtual))
+            edtPreco.setText(produto.precoAtual?.toString())
+            edtQtdPorCaixa.setText(produto.quantidadePorCaixa?.toString())
 
             val (cx, un) = estoqueParaTela(
-                it.quantidadeAtual,
-                it.quantidadePorCaixa
+                produto.quantidadeAtual,
+                produto.quantidadePorCaixa
             )
-            statusAtual = it.status
+
+            statusAtual = produto.status
+
             android.util.Log.d(
                 TAG_STATUS,
-                "CARREGAR → id=${it.id} status=${statusAtual}"
+                "CARREGAR → id=${produto.id} status=$statusAtual"
             )
+
             edtCaixa.setText(if (cx > 0) cx.toString() else "")
             edtUnidade.setText(if (un > 0) un.toString() else "")
 
-            produtoFotoUrl = it.fotoUrl
-            it.codigoBarras?.let { c -> carregarFotoSeNecessario(c) }
+            produtoFotoUrl = produto.fotoUrl
+
+            produto.codigoBarras?.let { codigo ->
+
+                carregarFotoSeNecessario(codigo)
+
+                // 🔎 Buscar complemento no JSON
+                scope.launch {
+
+                    val item = withContext(Dispatchers.IO) {
+                        lookup.buscarPorCodigoBarras(codigo)
+                    }
+
+                    if (item != null) {
+
+                        val descricaoCompleta = buildString {
+
+                            append(produto.descricao)
+
+                            if (!item.complemento.isNullOrBlank()) {
+                                append(" - ")
+                                append(item.complemento)
+                            }
+                        }
+
+                        edtDescricao.setText(descricaoCompleta)
+                    }
+                }
+            }
         }
     }
 
