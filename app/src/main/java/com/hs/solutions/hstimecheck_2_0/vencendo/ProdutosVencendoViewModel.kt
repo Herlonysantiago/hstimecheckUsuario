@@ -107,7 +107,7 @@ class ProdutosVencendoViewModel : ViewModel() {
                 }
                 .setNegativeButton("Não") { _, _ ->
                     viewModelScope.launch {
-                        productService.removerValidade(produto)
+                        productService.remover(produto.id)
                         carregar()
                     }
                 }

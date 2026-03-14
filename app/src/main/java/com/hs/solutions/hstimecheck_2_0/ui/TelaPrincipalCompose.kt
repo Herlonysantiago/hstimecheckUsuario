@@ -184,7 +184,7 @@ fun TelaPrincipal(
     }
 
     val chavesOrdenadas = grupos.keys.sorted()
-
+    var mostrarConfirmacaoExcluir by remember { mutableStateOf(false) }
     // ---------------- DRAWER ----------------
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -243,12 +243,13 @@ fun TelaPrincipal(
             )
         }
     ) {
-        // ---------------- SCAFFOLD ----------------
+        // ---------------- SCAFFOLD ---------------
         Scaffold(
+
             topBar = {
                 if (selectionMode) {
                     TopAppBar(
-                        title = { Text("${selectedIds.size} selecionado(s)") },
+                        title = { Text("${selectedIds.size} Selec.") },
                         navigationIcon = {
                             IconButton(onClick = {
                                 selectionMode = false
@@ -258,6 +259,11 @@ fun TelaPrincipal(
                             }
                         },
                         actions = {
+                            IconButton(onClick = {
+                                mostrarConfirmacaoExcluir = true
+                            }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Excluir")
+                            }
                             IconButton(onClick = {
                                 scope.launch {
                                     selectedIds.forEach { id ->
@@ -408,6 +414,56 @@ fun TelaPrincipal(
             }
         }
     }
+    if (mostrarConfirmacaoExcluir) {
+
+        AlertDialog(
+            onDismissRequest = { mostrarConfirmacaoExcluir = false },
+
+            title = {
+                Text("Excluir produtos")
+            },
+
+            text = {
+                Text("Deseja excluir ${selectedIds.size} produto(s)?")
+            },
+
+            confirmButton = {
+                TextButton(
+                    onClick = {
+
+                        scope.launch {
+
+                            selectedIds.forEach { id ->
+                                service.remover(id)
+                            }
+
+                            selectedIds.clear()
+                            selectionMode = false
+                            mostrarConfirmacaoExcluir = false
+
+                            service.carregar()
+
+                            Toast.makeText(
+                                context,
+                                "Produtos excluídos",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                ) {
+                    Text("Excluir")
+                }
+            },
+
+            dismissButton = {
+                TextButton(
+                    onClick = { mostrarConfirmacaoExcluir = false }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 }
 
 // =======================================================
@@ -538,6 +594,7 @@ fun ProdutoItem(
             }
         }
     }
+
 }
 
 
