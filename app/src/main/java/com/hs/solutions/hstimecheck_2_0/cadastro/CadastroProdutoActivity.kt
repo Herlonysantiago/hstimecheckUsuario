@@ -132,9 +132,6 @@ class CadastroProdutoActivity : AppCompatActivity() {
                     edtCodigoBarras.setText(codigoBarras)
                 }
 
-                if (!descricao.isNullOrBlank()) {
-                    edtDescricao.setText(descricao)
-                }
 
                 carregarDadosJson()
             }

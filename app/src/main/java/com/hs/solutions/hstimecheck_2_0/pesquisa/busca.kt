@@ -112,10 +112,14 @@ fun TelaPesquisaProdutos() {
                         modifier = Modifier.clickable {
 
                             val intent = Intent().apply {
-                                putExtra("codigo", produto.bar_cod?.toString())        // mantém compatibilidade
-                                putExtra("codigo_interno", produto.codigo?.toString()) // novo retorno
+                                putExtra("codigo", produto.bar_cod?.toString())
+                                putExtra("codigo_interno", produto.codigo?.toString())
                                 putExtra("descricao", produto.descricao)
+                                putExtra("complemento", produto.complemento) // ADICIONAR
                             }
+
+                            activity.setResult(Activity.RESULT_OK, intent)
+                            activity.finish()
 
                             activity.setResult(Activity.RESULT_OK, intent)
                             activity.finish()
