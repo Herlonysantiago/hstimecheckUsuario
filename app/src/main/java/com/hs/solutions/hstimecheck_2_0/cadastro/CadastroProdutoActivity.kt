@@ -477,7 +477,7 @@ class CadastroProdutoActivity : AppCompatActivity() {
             descricao = edtDescricao.text.toString(),
             validades = mutableListOf(),
             historico = mutableListOf(),
-
+            fotoUrl = produtoFotoUrl,
         )
         android.util.Log.d(
             TAG_STATUS,
@@ -495,7 +495,8 @@ class CadastroProdutoActivity : AppCompatActivity() {
             quantidadeAtual = total,
             quantidadePorCaixa = qtdPorCaixaFinal,
             precoAtual = preco,
-            status = statusAtual ?: produtoBase.status  // 🔴 FIX
+            status = statusAtual ?: produtoBase.status,  // 🔴 FIX
+            fotoUrl = produtoFotoUrl,
         )
 
         android.util.Log.d(
@@ -625,12 +626,27 @@ class CadastroProdutoActivity : AppCompatActivity() {
             edtCodigoInterno.setText(produto.codigoInterno)
             edtDescricao.setText(produto.descricao)
 
-            edtValidade.setText(DateFormatter.isoParaBr(produto.validadeAtual))
+            // 🔹 Pega a última validade registrada
+            val validadeItem = produto.validades.lastOrNull()
+
+            // VALIDADE
+            edtValidade.setText(
+                DateFormatter.isoParaBr(
+                    validadeItem?.validade ?: produto.validadeAtual
+                )
+            )
+
+            // PREÇO
             edtPreco.setText(produto.precoAtual?.toString())
+
+            // QTD POR CAIXA
             edtQtdPorCaixa.setText(produto.quantidadePorCaixa?.toString())
 
+            // QUANTIDADE
+            val quantidade = validadeItem?.quantidade ?: produto.quantidadeAtual
+
             val (cx, un) = estoqueParaTela(
-                produto.quantidadeAtual,
+                quantidade,
                 produto.quantidadePorCaixa
             )
 
