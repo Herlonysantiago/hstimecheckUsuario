@@ -29,6 +29,7 @@ import com.hs.solutions.hstimecheck_2_0.models.ValidadeItem
 import com.hs.solutions.hstimecheck_2_0.models.TipoEventoHistorico
 import com.hs.solutions.hstimecheck_2_0.core.DateFormatter
 import com.hs.solutions.hstimecheck_2_0.pesquisa.PesquisaProdutoActivity
+import com.hs.solutions.hstimecheck_2_0.core.HistoryService
 class CadastroProdutoActivity : AppCompatActivity() {
 
     private lateinit var productService: ProductService
@@ -244,10 +245,21 @@ class CadastroProdutoActivity : AppCompatActivity() {
             if (edtCodigoBarras.text.isBlank())
                 edtCodigoBarras.setText(item.bar_cod?.toString() ?: "")
 
+            // --- CORREÇÃO DA DESCRIÇÃO DUPLICADA ---
+            val descBase = item.descricao?.trim().orEmpty()
+            val comp = item.complemento?.trim().orEmpty()
+
             if (edtDescricao.text.isBlank()) {
-                edtDescricao.setText(montarDescricao(item.descricao, item.complemento))
+                edtDescricao.setText(montarDescricao(descBase, comp))
+            } else {
+                val textoAtual = edtDescricao.text.toString()
+                // Só adiciona o complemento se ele já não estiver no texto
+                if (comp.isNotEmpty() && !textoAtual.contains(comp, ignoreCase = true)) {
+                    edtDescricao.setText("$textoAtual - $comp")
+                }
             }
-            // 🔴 AQUI ESTÁ A CORREÇÃO
+            // ---------------------------------------
+
             extrairInfoCaixa(item.complemento)?.let {
                 if (edtQtdPorCaixa.text.isNullOrBlank()) {
                     edtQtdPorCaixa.setText(it.unidadesPorCaixa.toString())
@@ -491,6 +503,7 @@ class CadastroProdutoActivity : AppCompatActivity() {
             codigoBarras = edtCodigoBarras.text.toString(),
             codigoInterno = edtCodigoInterno.text.toString().ifBlank { null },
             descricao = edtDescricao.text.toString(),
+
             validadeAtual = validadeNova,
             quantidadeAtual = total,
             quantidadePorCaixa = qtdPorCaixaFinal,
@@ -498,12 +511,21 @@ class CadastroProdutoActivity : AppCompatActivity() {
             status = statusAtual ?: produtoBase.status,  // 🔴 FIX
             fotoUrl = produtoFotoUrl,
         )
-
+        produtoFinal.historico.addAll(produtoBase.historico)
         android.util.Log.d(
             TAG_STATUS,
             "APÓS COPY → produtoFinal.status=${produtoFinal.status}"
         )
-
+// -----------------------------
+// EVENTO: CADASTRO DO PRODUTO
+// -----------------------------
+        if (produtoExistente == null) {
+            produtoFinal.historico.add(
+                HistoryService.cadastro(
+                    produto = produtoFinal
+                )
+            )
+        }
         // -----------------------------
         // VALIDADES
         // -----------------------------
@@ -538,9 +560,21 @@ class CadastroProdutoActivity : AppCompatActivity() {
         // -----------------------------
         scope.launch {
             try {
+                // Instancia o Repository que criamos para o Firebase
+                val fireRepository = ProductRepositoryFirebase()
+
                 withContext(Dispatchers.IO) {
+                    // 1. ADIÇÃO: Envia para o Firebase (Nuvem)
+                    // Isso fará o "null" sumir do seu navegador agora
+                    fireRepository.salvarRemoto(produtoFinal)
+
+                    // 2. MANTIDO: Seu código antigo de salvamento local/serviço
                     productService.inserirOuAtualizar(produtoFinal)
                 }
+
+                // Feedback no Logcat para você acompanhar no Linux Mint
+                android.util.Log.d("FIREBASE_STATUS", "✅ Salvo no Local e no Firebase!")
+
                 finish()
             } catch (e: IllegalStateException) {
                 Toast.makeText(
@@ -549,6 +583,7 @@ class CadastroProdutoActivity : AppCompatActivity() {
                     Toast.LENGTH_LONG
                 ).show()
             } catch (e: Exception) {
+                android.util.Log.e("FIREBASE_STATUS", "❌ Erro: ${e.message}")
                 Toast.makeText(
                     this@CadastroProdutoActivity,
                     "Erro ao salvar o produto",
@@ -668,24 +703,19 @@ class CadastroProdutoActivity : AppCompatActivity() {
 
                 // 🔎 Buscar complemento no JSON
                 scope.launch {
-
                     val item = withContext(Dispatchers.IO) {
                         lookup.buscarPorCodigoBarras(codigo)
                     }
 
                     if (item != null) {
+                        val descBanco = produto.descricao.orEmpty()
+                        val complementoJson = item.complemento?.trim().orEmpty()
 
-                        val descricaoCompleta = buildString {
-
-                            append(produto.descricao)
-
-                            if (!item.complemento.isNullOrBlank()) {
-                                append(" - ")
-                                append(item.complemento)
-                            }
+                        if (complementoJson.isNotEmpty() && !descBanco.contains(complementoJson, ignoreCase = true)) {
+                            edtDescricao.setText("$descBanco - $complementoJson")
+                        } else {
+                            edtDescricao.setText(descBanco)
                         }
-
-                        edtDescricao.setText(descricaoCompleta)
                     }
                 }
             }

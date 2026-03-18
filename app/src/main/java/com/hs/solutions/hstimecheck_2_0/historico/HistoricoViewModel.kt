@@ -37,40 +37,45 @@ class HistoricoViewModel(
     fun setFiltroEvento(tipo: TipoEventoHistorico?) {
         filtroEvento.value = tipo
     }
-
     val historico: StateFlow<List<HistoricoViewItem>> =
-        service.produtos
-            .map { produtos ->
-                produtos.flatMap { produto ->
-                    produto.historico.mapNotNull { h ->
+        combine(service.produtos, query, filtroEvento) { produtos, q, filtro ->
 
-                        val tituloSeguro = when {
-                            !h.titulo.isNullOrBlank() -> h.titulo
-                            h.tipoEvento != null -> h.tipoEvento.name
-                            else -> null
-                        }
+            produtos.flatMap { produto ->
+                produto.historico.mapNotNull { h ->
 
-                        // 🔒 SE NÃO CONSEGUIR GERAR TÍTULO, DESCARTA O ITEM
-                        tituloSeguro?.let {
-                            HistoricoViewItem(
-                                titulo = it,
-                                descricao = h.descricao ?: "",
-                                codigoInterno = h.codigoInterno,
-                                codigoBarras = h.codigoBarras,
-                                validade = h.validade,
-                                dataEvento = h.dataEvento
-                            )
-                        }
-                    }
+                    val titulo = h.titulo ?: h.tipoEvento?.name ?: return@mapNotNull null
 
-                }.sortedByDescending { it.dataEvento }
+                    HistoricoViewItem(
+                        titulo = titulo,
+                        descricao = h.descricao ?: "",
+                        codigoInterno = h.codigoInterno,
+                        codigoBarras = h.codigoBarras,
+                        validade = h.validade,
+                        dataEvento = h.dataEvento
+                    )
+                }
             }
-            .stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(5_000),
-                emptyList()
-            )
+                .filter { item ->
 
+                    val matchBusca =
+                        q.isBlank() ||
+                                item.descricao.contains(q, true) ||
+                                item.codigoBarras?.contains(q) == true ||
+                                item.codigoInterno?.contains(q) == true ||
+                                item.titulo.contains(q, true)
+
+                    val matchFiltro =
+                        filtro == null || item.titulo.contains(filtro.name, true)
+
+                    matchBusca && matchFiltro
+                }
+                .sortedByDescending { it.dataEvento }
+
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
     fun carregar() {
         viewModelScope.launch {
             service.carregar()

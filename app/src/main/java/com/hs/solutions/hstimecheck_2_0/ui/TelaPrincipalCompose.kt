@@ -240,6 +240,18 @@ fun TelaPrincipal(
                 },
                 onImportacao = {
                     selecionarArquivoLauncher.launch(arrayOf("text/*"))
+                },
+                onbuckp = {
+                    scope.launch {
+                        Toast.makeText(context, "Sincronizando com a nuvem...", Toast.LENGTH_SHORT)
+                            .show()
+                        service.sincronizarTudoComFirebase() // A função que criamos no Service
+                        Toast.makeText(
+                            context,
+                            "Backup HS TimeCheck concluído!",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             )
         }
@@ -769,7 +781,8 @@ fun DrawerMenu(
     onHistorico: () -> Unit = {},
     onConfiguracoes: () -> Unit = {},
     onSobre: () -> Unit = {},
-    onCreditos: () -> Unit = {}
+    onCreditos: () -> Unit = {},
+    onbuckp: () -> Unit ={}
 ) {
     ModalDrawerSheet(
         modifier = Modifier.verticalScroll(rememberScrollState())
@@ -874,6 +887,13 @@ fun DrawerMenu(
             selected = false,
             onClick = onCreditos
         )
+        NavigationDrawerItem(
+            label = { Text("Backup Total (Firebase)") },
+            icon = { Icon(Icons.Default.CloudUpload, null) },
+            selected = false,
+            onClick = onbuckp
+        )
+
     }
 }
 

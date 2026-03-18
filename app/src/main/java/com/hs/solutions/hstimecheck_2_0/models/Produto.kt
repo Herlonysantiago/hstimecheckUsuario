@@ -3,10 +3,10 @@ package com.hs.solutions.hstimecheck_2_0.models
 import java.util.UUID
 
 data class Produto(
-    val id: String = UUID.randomUUID().toString(),
-    val codigoBarras: String,
+    var id: String = UUID.randomUUID().toString(),
+    var codigoBarras: String = "", // Valor padrão adicionado
     var codigoInterno: String? = null,
-    var descricao: String,
+    var descricao: String = "",    // Valor padrão adicionado
     var validadeAtual: String? = null,
     var quantidadeAtual: Int? = null,
     var quantidadePorCaixa: Int? = null,
@@ -20,9 +20,11 @@ data class Produto(
     var fotoUrl: String? = null,
     var fotpLocal: String? = null,
 
-    val validades: MutableList<ValidadeItem> = mutableListOf(),
-    val historico: MutableList<HistoricoItem> = mutableListOf(),
-    val importId: String? = null
+    var validades: MutableList<ValidadeItem> = mutableListOf(),
+    var historico: MutableList<HistoricoItem> = mutableListOf(),
+    var importId: String? = null,
 
+    var lastZapSent: Long? = null,
+    var alertaAtivo: Boolean = true,
+    var diasAntecedencia: Int = 7
 )
-
