@@ -1,5 +1,5 @@
 package com.hs.solutions.hstimecheck_2_0.cadastro
-
+import android.graphics.Color
 import com.hs.solutions.hstimecheck_2_0.ui.FullImageActivity
 import android.content.Intent
 import android.widget.Toast
@@ -225,18 +225,30 @@ class CadastroProdutoActivity : AppCompatActivity() {
     // FOTO
     // ------------------------------------------------------------
     private fun buscarProdutoCadastro() {
-        val codBar = edtCodigoBarras.text.toString().trim()
+        val codBruto = edtCodigoBarras.text.toString().trim()
         val codInt = edtCodigoInterno.text.toString().trim()
 
-        if (codBar.isBlank() && codInt.isBlank()) {
+        if (codBruto.isBlank() && codInt.isBlank()) {
             Toast.makeText(this, "Informe um código para buscar", Toast.LENGTH_SHORT).show()
             return
         }
 
+        // 🔥 LIMPEZA DA BALANÇA AQUI!
+        val codLimpo = if (codBruto.isNotBlank()) BarcodeUtils.extrairCodigoInternoBalanca(codBruto) else codBruto
+     //   Toast.makeText(this, "Lido: $codBruto | Limpo: $codLimpo", Toast.LENGTH_LONG).show()
+        // Se o código mudou (era balança), atualiza a tela para você ver os 5 dígitos
+        if (codBruto != codLimpo && codBruto.isNotBlank()) {
+            edtCodigoBarras.setText(codLimpo)
+        }
+
         scope.launch {
             val item = withContext(Dispatchers.IO) {
-                if (codBar.isNotBlank()) lookup.buscarPorCodigoBarras(codBar)
-                else lookup.buscarPorCodigoInterno(codInt)
+                // Busca usando o codLimpo em vez do codBar cru!
+                if (codLimpo.isNotBlank()) {
+                    lookup.buscarPorCodigoBarras(codLimpo) ?: lookup.buscarPorCodigoInterno(codLimpo)
+                } else {
+                    lookup.buscarPorCodigoInterno(codInt)
+                }
             } ?: return@launch
 
             if (edtCodigoInterno.text.isBlank())
@@ -253,7 +265,6 @@ class CadastroProdutoActivity : AppCompatActivity() {
                 edtDescricao.setText(montarDescricao(descBase, comp))
             } else {
                 val textoAtual = edtDescricao.text.toString()
-                // Só adiciona o complemento se ele já não estiver no texto
                 if (comp.isNotEmpty() && !textoAtual.contains(comp, ignoreCase = true)) {
                     edtDescricao.setText("$textoAtual - $comp")
                 }
@@ -292,9 +303,7 @@ class CadastroProdutoActivity : AppCompatActivity() {
     private fun carregarFotoSeNecessario(codigo: String) {
 
         if (!produtoFotoUrl.isNullOrBlank()) {
-            Glide.with(this)
-                .load(produtoFotoUrl)
-                .into(imgProduto)
+            Glide.with(this).load(produtoFotoUrl).into(imgProduto)
             return
         }
 
@@ -305,16 +314,22 @@ class CadastroProdutoActivity : AppCompatActivity() {
         }
 
         scope.launch {
-            val fotoOnline = withContext(Dispatchers.IO) {
-                lookup.buscarFoto(codigo)
-            }
+            // 🔥 BLINDADO: Tenta buscar a foto, se falhar por falta de internet, não fecha o app!
+            try {
+                val fotoOnline = withContext(Dispatchers.IO) {
+                    lookup.buscarFoto(codigo)
+                }
 
-            if (!fotoOnline.isNullOrBlank()) {
-                produtoFotoUrl = fotoOnline
-                FotoRepository.salvar(this@CadastroProdutoActivity, codigo, fotoOnline)
-                Glide.with(this@CadastroProdutoActivity)
-                    .load(fotoOnline)
-                    .into(imgProduto)
+                if (!fotoOnline.isNullOrBlank()) {
+                    produtoFotoUrl = fotoOnline
+                    FotoRepository.salvar(this@CadastroProdutoActivity, codigo, fotoOnline)
+                    Glide.with(this@CadastroProdutoActivity)
+                        .load(fotoOnline)
+                        .into(imgProduto)
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("OFFLINE", "Sem rede para baixar foto. Continuando normal.")
+                // O app continua funcionando sem a foto!
             }
         }
     }
@@ -325,29 +340,42 @@ class CadastroProdutoActivity : AppCompatActivity() {
     // ------------------------------------------------------------
 
     private fun carregarDadosJson() {
-        val codBar = edtCodigoBarras.text.toString().trim()
-        if (codBar.isBlank()) return
+        val codBruto = edtCodigoBarras.text.toString().trim()
+        if (codBruto.isBlank()) return
+
+        val codLimpo = BarcodeUtils.extrairCodigoInternoBalanca(codBruto)
+
+        if (codBruto != codLimpo) {
+            edtCodigoBarras.setText(codLimpo)
+        }
 
         scope.launch {
-            val item = withContext(Dispatchers.IO) {
-                lookup.buscarPorCodigoBarras(codBar)
-            } ?: return@launch
+            try {
+                // Busca blindada contra erros
+                val item = withContext(Dispatchers.IO) {
+                    lookup.buscarPorCodigoBarras(codLimpo) ?: lookup.buscarPorCodigoInterno(codLimpo)
+                }
 
-            if (edtCodigoInterno.text.isNullOrBlank()) {
-                edtCodigoInterno.setText(item.codigo?.toString() ?: "")
-            }
+                withContext(Dispatchers.Main) {
+                    if (item != null) {
+                        if (edtCodigoInterno.text.isNullOrBlank()) {
+                            edtCodigoInterno.setText(item.codigo?.toString() ?: "")
+                        }
+                        if (edtDescricao.text.isNullOrBlank()) {
+                            edtDescricao.setText(montarDescricao(item.descricao, item.complemento))
+                        }
+                    } else {
+                        Toast.makeText(this@CadastroProdutoActivity, "Produto novo ou não encontrado. Pode preencher manualmente!", Toast.LENGTH_SHORT).show()
+                    }
 
-            if (edtDescricao.text.isNullOrBlank()) {
-                edtDescricao.setText(montarDescricao(item.descricao, item.complemento))
-            }
-
-            extrairInfoCaixa(item.complemento)?.let {
-                if (edtQtdPorCaixa.text.isNullOrBlank()) {
-                    edtQtdPorCaixa.setText(it.unidadesPorCaixa.toString())
+                    carregarFotoSeNecessario(codLimpo)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    android.util.Log.e("OFFLINE_BUSCA", "Erro interno na busca: ${e.message}")
+                    Toast.makeText(this@CadastroProdutoActivity, "Erro de leitura, mas você pode continuar digitando.", Toast.LENGTH_LONG).show()
                 }
             }
-
-            carregarFotoSeNecessario(codBar)
         }
     }
 
@@ -381,7 +409,7 @@ class CadastroProdutoActivity : AppCompatActivity() {
             val codigo = edtCodigoBarras.text.toString().trim()
 
             if (codigo.isBlank()) {
-                Toast.makeText(this, "Digite o código de barras primeiro", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Digite o codigo de barras primeiro", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -499,6 +527,9 @@ class CadastroProdutoActivity : AppCompatActivity() {
         // -----------------------------
         // PRODUTO FINAL (ÚNICO OBJETO)
         // -----------------------------
+        // -----------------------------
+        // PRODUTO FINAL (ÚNICO OBJETO)
+        // -----------------------------
         val produtoFinal = produtoBase.copy(
             codigoBarras = edtCodigoBarras.text.toString(),
             codigoInterno = edtCodigoInterno.text.toString().ifBlank { null },
@@ -508,29 +539,16 @@ class CadastroProdutoActivity : AppCompatActivity() {
             quantidadeAtual = total,
             quantidadePorCaixa = qtdPorCaixaFinal,
             precoAtual = preco,
-            status = statusAtual ?: produtoBase.status,  // 🔴 FIX
+            status = statusAtual ?: produtoBase.status,
             fotoUrl = produtoFotoUrl,
+            validades = produtoBase.validades.map { it.copy() }.toMutableList(),
+            historico = produtoBase.historico.toMutableList(),
         )
-        produtoFinal.historico.addAll(produtoBase.historico)
-        android.util.Log.d(
-            TAG_STATUS,
-            "APÓS COPY → produtoFinal.status=${produtoFinal.status}"
-        )
+        android.util.Log.d(TAG_STATUS, "APÓS COPY → produtoFinal.status=${produtoFinal.status}")
 // -----------------------------
-// EVENTO: CADASTRO DO PRODUTO
-// -----------------------------
-        if (produtoExistente == null) {
-            produtoFinal.historico.add(
-                HistoryService.cadastro(
-                    produto = produtoFinal
-                )
-            )
-        }
-        // -----------------------------
         // VALIDADES
         // -----------------------------
         if (!validadeNova.isNullOrBlank()) {
-
             val jaExiste = produtoFinal.validades.any { it.validade == validadeNova }
 
             if (!jaExiste) {
@@ -538,7 +556,6 @@ class CadastroProdutoActivity : AppCompatActivity() {
                     ValidadeItem(
                         validade = validadeNova,
                         quantidade = total,
-                       /* status = StatusValidade.NORMAL,*/
                         dataCadastro = System.currentTimeMillis().toString()
                     )
                 )
@@ -551,47 +568,30 @@ class CadastroProdutoActivity : AppCompatActivity() {
                     )
                 )
             }
-
             produtoFinal.validadeAtual = validadeNova
         }
 
         // -----------------------------
-        // SALVAR
+        // SALVAR FINAL (BLINDADO OFFLINE)
         // -----------------------------
         scope.launch {
             try {
-                // Instancia o Repository que criamos para o Firebase
-                val fireRepository = ProductRepositoryFirebase()
-
+                // 1️⃣ SALVA LOCAL PRIMEIRO (É instantâneo e funciona na câmara fria)
                 withContext(Dispatchers.IO) {
-                    // 1. ADIÇÃO: Envia para o Firebase (Nuvem)
-                    // Isso fará o "null" sumir do seu navegador agora
-                    fireRepository.salvarRemoto(produtoFinal)
-
-                    // 2. MANTIDO: Seu código antigo de salvamento local/serviço
                     productService.inserirOuAtualizar(produtoFinal)
                 }
 
-                // Feedback no Logcat para você acompanhar no Linux Mint
-                android.util.Log.d("FIREBASE_STATUS", "✅ Salvo no Local e no Firebase!")
-
+                // 2️⃣ FECHA A TELA (Libera você pra bipar o próximo imediatamente)
+                Toast.makeText(this@CadastroProdutoActivity, "Produto salvo!", Toast.LENGTH_SHORT).show()
                 finish()
+
+
             } catch (e: IllegalStateException) {
-                Toast.makeText(
-                    this@CadastroProdutoActivity,
-                    e.message ?: "Produto duplicado",
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(this@CadastroProdutoActivity, e.message ?: "Produto duplicado", Toast.LENGTH_LONG).show()
             } catch (e: Exception) {
-                android.util.Log.e("FIREBASE_STATUS", "❌ Erro: ${e.message}")
-                Toast.makeText(
-                    this@CadastroProdutoActivity,
-                    "Erro ao salvar o produto",
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(this@CadastroProdutoActivity, "Erro ao salvar: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
-
     }
 
 
@@ -739,9 +739,43 @@ class CadastroProdutoActivity : AppCompatActivity() {
     private fun abrirCalendario() {
         val c = Calendar.getInstance()
         DatePickerDialog(this, { _, y, m, d ->
-            edtValidade.setText("%02d/%02d/%04d".format(d, m + 1, y))
-        }, c.get(Calendar.YEAR), c.get(Calendar.MONTH),
-            c.get(Calendar.DAY_OF_MONTH)).show()
+            val dataFormatada = "%02d/%02d/%04d".format(d, m + 1, y)
+            val dataIso = DateFormatter.brParaIso(dataFormatada)
+
+            val codBar = edtCodigoBarras.text.toString().trim()
+            val codInt = edtCodigoInterno.text.toString().trim()
+
+            // 🔥 NOVA LÓGICA DE VERIFICAÇÃO BLINDADA
+            val duplicado = productService.produtos.value.any { produto ->
+                // Só compara se o campo não estiver vazio
+                val codBarIgual = codBar.isNotBlank() && produto.codigoBarras == codBar
+                val codIntIgual = codInt.isNotBlank() && produto.codigoInterno == codInt
+
+                if (codBarIgual || codIntIgual) {
+                    // Se for o mesmo produto, vasculha TODA A LISTA de validades dele
+                    produto.validades.any { it.validade == dataIso }
+                } else {
+                    false
+                }
+            }
+
+            if (duplicado) {
+                Toast.makeText(this, "⚠️ Validade já lançada para este produto! Bloqueando salvamento.", Toast.LENGTH_LONG).show()
+                edtValidade.setText(dataFormatada)
+
+                // 🔴 BLOQUEIA O BOTÃO
+                btnSalvar.isEnabled = false
+                btnSalvar.alpha = 0.5f
+                edtValidade.setTextColor(Color.RED)
+            } else {
+                edtValidade.setText(dataFormatada)
+
+                // 🟢 LIBERA O BOTÃO
+                btnSalvar.isEnabled = true
+                btnSalvar.alpha = 1.0f
+                edtValidade.setTextColor(Color.BLACK)
+            }
+        }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show()
     }
 
     private fun converterData(raw: String?): String? =

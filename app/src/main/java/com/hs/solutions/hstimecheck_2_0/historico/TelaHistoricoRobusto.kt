@@ -38,8 +38,7 @@ fun TelaHistoricoRobusto(viewModel: HistoricoViewModel) {
                 .padding(padding)
                 .fillMaxSize()
         ) {
-
-            // 🔍 BUSCA
+            // BUSCA
             OutlinedTextField(
                 value = busca,
                 onValueChange = {
@@ -55,8 +54,7 @@ fun TelaHistoricoRobusto(viewModel: HistoricoViewModel) {
                 },
                 singleLine = true
             )
-
-            // 🎯 FILTROS
+            // FILTROS
             Row(
                 modifier = Modifier
                     .horizontalScroll(rememberScrollState())
@@ -78,8 +76,7 @@ fun TelaHistoricoRobusto(viewModel: HistoricoViewModel) {
                     viewModel.setFiltroEvento(TipoEventoHistorico.TRABALHANDO_PRECO)
                 }
             }
-
-            // 📜 LISTA
+            // LISTA
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(8.dp)
@@ -91,16 +88,14 @@ fun TelaHistoricoRobusto(viewModel: HistoricoViewModel) {
                             .padding(vertical = 4.dp)
                     ) {
                         Column(Modifier.padding(12.dp)) {
-
-                            // 🔹 TÍTULO DO EVENTO
+                            // TÍTULO DO EVENTO
                             Text(
                                 text = item.titulo,
                                 fontWeight = FontWeight.Bold
                             )
 
                             Spacer(Modifier.height(4.dp))
-
-                            // 🔹 CÓDIGOS
+                            // CÓDIGOS
                             Text(
                                 text = buildString {
                                     item.codigoInterno?.let { append("CI: $it  ") }
@@ -108,8 +103,7 @@ fun TelaHistoricoRobusto(viewModel: HistoricoViewModel) {
                                 },
                                 style = MaterialTheme.typography.labelSmall
                             )
-
-                            // 🔹 VALIDADE
+                            // VALIDADE
                             item.validade?.let {
                                 Text(
                                     text = "Validade: $it",
@@ -118,15 +112,13 @@ fun TelaHistoricoRobusto(viewModel: HistoricoViewModel) {
                             }
 
                             Spacer(Modifier.height(6.dp))
-
-                            // 🔹 DESCRIÇÃO DO EVENTO
+                            // DESCRIÇÃO DO EVENTO
                             Text(
                                 text = item.descricao
                             )
 
                             Spacer(Modifier.height(6.dp))
-
-                            // 🔹 DATA
+                            // DATA
                             Text(
                                 text = item.dataEvento,
                                 style = MaterialTheme.typography.labelSmall

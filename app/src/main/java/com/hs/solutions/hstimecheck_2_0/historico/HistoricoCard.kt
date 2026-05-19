@@ -15,16 +15,14 @@ fun HistoricoCard(item: HistoricoViewItem) {
             .padding(vertical = 6.dp)
     ) {
         Column(Modifier.padding(12.dp)) {
-
-            // 🔹 TÍTULO
+            // TÍTULO
             Text(
                 text = item.titulo,
                 style = MaterialTheme.typography.titleMedium
             )
 
             Spacer(Modifier.height(4.dp))
-
-            // 🔹 CÓDIGOS
+            // CÓDIGOS
             Text(
                 text = buildString {
                     item.codigoInterno?.let { append("CI: $it  ") }
@@ -32,8 +30,7 @@ fun HistoricoCard(item: HistoricoViewItem) {
                 },
                 style = MaterialTheme.typography.labelSmall
             )
-
-            // 🔹 VALIDADE
+            // VALIDADE
             item.validade?.let {
                 Text(
                     text = "Validade: $it",
@@ -42,16 +39,14 @@ fun HistoricoCard(item: HistoricoViewItem) {
             }
 
             Spacer(Modifier.height(6.dp))
-
-            // 🔹 DESCRIÇÃO
+            // DESCRIÇÃO
             Text(
                 text = item.descricao,
                 style = MaterialTheme.typography.bodyMedium
             )
 
             Spacer(Modifier.height(8.dp))
-
-            // 🔹 DATA
+            // DATA
             Text(
                 text = item.dataEvento,
                 style = MaterialTheme.typography.labelSmall

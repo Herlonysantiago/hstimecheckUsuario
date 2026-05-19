@@ -1,24 +1,26 @@
 package com.hs.solutions.hstimecheck_2_0.alerts
 
+import android.Manifest
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import com.hs.solutions.hstimecheck_2_0.vencendo.ProdutosVencendoActivity
-import com.hs.solutions.hstimecheck_2_0.ui.TelaPrincipalActivity
 import com.hs.solutions.hstimecheck_2_0.core.StatusRules
 import android.content.Context
+import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.hs.solutions.hstimecheck_2_0.core.AppContainer
 import com.hs.solutions.hstimecheck_2_0.models.StatusProduto
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.hs.solutions.hstimecheck_2_0.R
-import com.hs.solutions.hstimecheck_2_0.core.AppPreferences
 class AlertaWorker(
     context: Context,
     params: WorkerParameters
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
+        if (!AppContainer.isInitialized) return Result.success()
 
         val productService = AppContainer.productService
         productService.carregar()
@@ -59,6 +61,14 @@ class AlertaWorker(
         texto: String,
         modo: String
     ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                applicationContext,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
 
         val intent = Intent(applicationContext, ProdutosVencendoActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -81,8 +91,12 @@ class AlertaWorker(
             .setAutoCancel(true)
             .build()
 
-        NotificationManagerCompat.from(applicationContext)
-            .notify(modo.hashCode(), notification)
+        try {
+            NotificationManagerCompat.from(applicationContext)
+                .notify(modo.hashCode(), notification)
+        } catch (_: SecurityException) {
+            // Permission can be revoked after scheduling the worker.
+        }
     }
 
 

@@ -248,7 +248,7 @@ fun TelaPrincipal(
                         service.sincronizarTudoComFirebase() // A função que criamos no Service
                         Toast.makeText(
                             context,
-                            "Backup HS TimeCheck concluído!",
+                            "Backup concluído!",
                             Toast.LENGTH_SHORT
                         ).show()
                     }

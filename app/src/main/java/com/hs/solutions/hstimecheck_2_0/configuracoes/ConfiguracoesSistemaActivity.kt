@@ -1,11 +1,18 @@
 package com.hs.solutions.hstimecheck_2_0.configuracoes
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.Switch
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.work.WorkManager
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.hs.solutions.hstimecheck_2_0.R
+import com.hs.solutions.hstimecheck_2_0.auth.AuthSession
+import com.hs.solutions.hstimecheck_2_0.auth.SignInActivity
+import com.hs.solutions.hstimecheck_2_0.core.AppContainer
 import com.hs.solutions.hstimecheck_2_0.core.AppPreferences
 import kotlinx.coroutines.launch
 
@@ -21,6 +28,7 @@ class ConfiguracoesSistemaActivity : AppCompatActivity() {
     private lateinit var btnSincronizar: Button
     private lateinit var btnLimparCache: Button
     private lateinit var btnRestaurar: Button
+    private lateinit var btnSairConta: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,6 +50,7 @@ class ConfiguracoesSistemaActivity : AppCompatActivity() {
         btnSincronizar = findViewById(R.id.btnSincronizar)
         btnLimparCache = findViewById(R.id.btnLimparCache)
         btnRestaurar = findViewById(R.id.btnRestaurar)
+        btnSairConta = findViewById(R.id.btnSairConta)
     }
 
     private fun carregarConfiguracoes() {
@@ -100,6 +109,17 @@ class ConfiguracoesSistemaActivity : AppCompatActivity() {
 
         switchBloquearSemAprovacao.setOnCheckedChangeListener { _, v ->
             salvar(AppPreferences.BLOQUEAR_SEM_APROVACAO, v)
+        }
+
+        btnSairConta.setOnClickListener {
+            GoogleSignIn.getClient(this, GoogleSignInOptions.DEFAULT_SIGN_IN).signOut()
+            WorkManager.getInstance(this).cancelUniqueWork("alertas_produtos")
+            AuthSession.signOut()
+            AppContainer.reset()
+            val intent = Intent(this, SignInActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            startActivity(intent)
         }
     }
 

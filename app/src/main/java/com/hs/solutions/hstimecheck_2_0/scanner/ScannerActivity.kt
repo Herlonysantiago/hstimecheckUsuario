@@ -1,6 +1,7 @@
 package com.hs.solutions.hstimecheck_2_0.scanner
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -107,6 +108,7 @@ class ScannerActivity : AppCompatActivity() {
         cam.cameraControl.enableTorch(flashLigado)
     }
 
+    @SuppressLint("UnsafeOptInUsageError")
     private fun startCamera() {
         val providerFuture = ProcessCameraProvider.getInstance(this)
 

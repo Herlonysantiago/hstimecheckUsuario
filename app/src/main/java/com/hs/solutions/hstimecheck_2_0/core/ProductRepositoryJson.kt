@@ -7,9 +7,13 @@ import com.google.gson.reflect.TypeToken
 import com.hs.solutions.hstimecheck_2_0.models.Produto
 import java.io.File
 
-class ProductRepositoryJson(private val context: Context) : ProductRepository {
+class ProductRepositoryJson(
+    private val context: Context,
+    userId: String
+) : ProductRepository {
 
-    private val file = File(context.filesDir, "produtos_new.json")
+    private val safeUserId = userId.replace(Regex("[^A-Za-z0-9_-]"), "_")
+    private val file = File(context.filesDir, "produtos_$safeUserId.json")
     private val gson = Gson()
 
     private fun readFile(): MutableList<Produto> {

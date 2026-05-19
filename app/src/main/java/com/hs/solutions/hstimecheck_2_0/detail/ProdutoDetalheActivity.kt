@@ -12,7 +12,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 import com.hs.solutions.hstimecheck_2_0.core.AppContainer
 import android.content.Intent
-import android.util.Log
 import com.hs.solutions.hstimecheck_2_0.ui.FullImageActivity   // ← IMPORT NECESSÁRIO
 import com.hs.solutions.hstimecheck_2_0.models.TipoEventoHistorico
 import com.hs.solutions.hstimecheck_2_0.core.HistoryService
@@ -37,8 +36,6 @@ class ProdutoDetalheActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_produto_detalhe)
-        val btn = findViewById<Button?>(R.id.btnSalvar)
-        Log.d("TESTE_SALVAR", "BOTÃO SALVAR ENCONTRADO? -> $btn")
 
         val id = intent.getStringExtra("id") ?: return
         produto = productService.getProdutoById(id)

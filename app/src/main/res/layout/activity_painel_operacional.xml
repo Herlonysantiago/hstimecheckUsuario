@@ -13,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="?attr/colorPrimaryContainer"
-        android:title="HS TimeCheck – Painel Operacional"
+        android:title="HS TimeCheck Usuários – Painel Operacional"
         android:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge"
         app:navigationIcon="@drawable/ic_menu"
         app:menu="@menu/menu_painel_operacional"

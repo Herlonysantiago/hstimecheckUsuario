@@ -7,6 +7,11 @@ import com.google.zxing.MultiFormatWriter
 import com.google.zxing.common.BitMatrix
 
 object BarcodeUtils {
+    fun extrairCodigoInternoBalanca(barcode: String): String {
+        if (!barcode.startsWith("20") || barcode.length != 13) return barcode
+        val fatiaCodigo = barcode.substring(2, 7)
+        return fatiaCodigo.toLongOrNull()?.toString() ?: fatiaCodigo
+    }
 
     fun gerarCode128(
         valor: String,

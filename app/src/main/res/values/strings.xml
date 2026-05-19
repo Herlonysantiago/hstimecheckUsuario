@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">Hs TimeCheck 2.0</string>
+    <string name="app_name">HS TimeCheck Usuários</string>
+    <string name="google_web_client_id">COLOQUE_O_WEB_CLIENT_ID_DO_FIREBASE_AQUI</string>
 </resources>

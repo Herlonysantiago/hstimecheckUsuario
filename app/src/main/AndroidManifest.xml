@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.hs.solutions.hstimecheck_2_0">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- NOTIFICaÇAO -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
@@ -19,7 +18,7 @@
 
     <application
         android:name=".HsTimeCheckApp"
-        android:label="HsTimeCheck"
+        android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.HsTimeCheck"
         android:forceDarkAllowed="false">
@@ -40,6 +39,7 @@
         <activity android:name="com.hs.solutions.hstimecheck_2_0.ui.PainelOperacionalActivity"/>
         <activity android:name="com.hs.solutions.hstimecheck_2_0.ui.TelaListaFiltradaActivity"/>
         <activity android:name="com.hs.solutions.hstimecheck_2_0.scanner.ScannerActivity" />
+        <activity android:name="com.hs.solutions.hstimecheck_2_0.auth.SignInActivity" />
         <activity android:name="com.hs.solutions.hstimecheck_2_0.ui.TelaPrincipalActivity" />
         <activity android:name="com.hs.solutions.hstimecheck_2_0.cadastro.CadastroProdutoActivity" />
         <activity android:name="com.hs.solutions.hstimecheck_2_0.configuracoes.ConfiguracoesSistemaActivity"/>

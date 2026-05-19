@@ -57,7 +57,7 @@ fun SobreScreen() {
 
             // 🔹 TÍTULO
             Text(
-                text = "HS TimeCheck 2.0",
+                text = "HS TimeCheck ",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -67,7 +67,7 @@ fun SobreScreen() {
             // 🔹 DESCRIÇÃO
             Text(
                 text = """
-O HS TimeCheck 2.0 é um sistema desenvolvido para auxiliar no controle de produtos, validades e fluxos operacionais no varejo.
+O HS TimeCheck é um sistema desenvolvido para auxiliar no controle de produtos, validades e fluxos operacionais no varejo.
 
 Ele centraliza informações de estoque, vencimentos, aprovações comerciais e histórico de ações, garantindo mais segurança, organização e rastreabilidade no dia a dia da loja.
                 """.trimIndent(),

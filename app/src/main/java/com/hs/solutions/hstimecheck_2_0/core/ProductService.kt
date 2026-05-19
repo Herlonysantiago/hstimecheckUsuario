@@ -1,10 +1,15 @@
 package com.hs.solutions.hstimecheck_2_0.core
 
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import android.util.Log
 import com.hs.solutions.hstimecheck_2_0.models.Produto
 import com.hs.solutions.hstimecheck_2_0.models.StatusProduto
+import com.hs.solutions.hstimecheck_2_0.models.TipoEventoHistorico
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,6 +20,7 @@ class ProductService(private val repo: ProductRepository) {
 
     // 🔹 REPOSITORY DO FIREBASE ADICIONADO
     private val firebaseRepo = ProductRepositoryFirebase()
+    private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val TAG_STATUS = "STATUS_DEBUG"
     private val _produtos = MutableStateFlow<List<Produto>>(emptyList())
@@ -62,8 +68,8 @@ class ProductService(private val repo: ProductRepository) {
         val novo = repo.carregar().none { it.id == produto.id }
         val base = produto.copy()
 
-        if (novo) {
-            base.historico.add(HistoryService.cadastro(base))
+        if (novo && base.historico.none { it.tipoEvento == TipoEventoHistorico.CADASTRO_PRODUTO }) {
+            base.historico.add(0, HistoryService.cadastro(base))
         }
 
         val statusFinal = if (novo) StatusProduto.NORMAL else base.status
@@ -72,10 +78,19 @@ class ProductService(private val repo: ProductRepository) {
         // ✅ SALVA LOCALMENTE
         repo.salvar(produtoFinal)
 
-        // 🚀 SINCRONIZA NO FIREBASE
-        firebaseRepo.salvarRemoto(produtoFinal)
-
+        // Update the local list immediately so offline saves can finish.
         carregar()
+
+        // Try Firebase in the background without blocking the screen offline.
+        syncScope.launch {
+            try {
+                withTimeoutOrNull(5000) {
+                    firebaseRepo.salvarRemoto(produtoFinal)
+                }
+            } catch (e: Exception) {
+                Log.e("fire_sync", "Sem internet. Produto ficou salvo localmente: ${e.message}")
+            }
+        }
     }
 
     // =========================
@@ -305,3 +320,4 @@ class ProductService(private val repo: ProductRepository) {
 
     fun getProdutoById(id: String): Produto? = _produtos.value.find { it.id == id }
 }
+
