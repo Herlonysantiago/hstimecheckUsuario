@@ -16,7 +16,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import com.hs.solutions.hstimecheck_2_0.estoque.*
 import java.util.UUID
 
-class ProductService(private val repo: ProductRepository) {
+class ProductService(
+    private val repo: ProductRepository,
+    val firebaseEnabled: Boolean = true
+) {
 
     // 🔹 REPOSITORY DO FIREBASE ADICIONADO
     private val firebaseRepo = ProductRepositoryFirebase()
@@ -30,6 +33,8 @@ class ProductService(private val repo: ProductRepository) {
         _produtos.value = repo.carregar()
     }
     init {
+        if (firebaseEnabled) {
+
         // 👂 Inicia o "Ouvinte Realtime" do Firebase
         firebaseRepo.iniciarEscutaRemota { listaVindaDaNuvem ->
             // 1. Atualiza o StateFlow na memória (O que o usuário vê na tela agora)
@@ -37,17 +42,16 @@ class ProductService(private val repo: ProductRepository) {
 
             // 2. Sincronização Silenciosa com o Banco Local (Opcional, mas recomendado)
             // Isso garante que, se o celular ficar sem internet, as edições do PC já estejam salvas no SQLite
-            kotlinx.coroutines.MainScope().launch(kotlinx.coroutines.Dispatchers.IO) {
+            syncScope.launch {
                 try {
-                    listaVindaDaNuvem.forEach { produtoNuvem ->
+                    repo.salvarTodos(listaVindaDaNuvem)
                         // Salva no Room/SQLite local para persistência offline
-                        repo.salvar(produtoNuvem)
-                    }
                     Log.d("fire_sync", "Banco local atualizado via PC: ${listaVindaDaNuvem.size} itens")
                 } catch (e: Exception) {
                     Log.e("fire_sync", "Erro ao persistir dados do PC no local: ${e.message}")
                 }
             }
+        }
         }
     }
     fun buscarPorCodigoBarrasLocal(codigo: String): Produto? =
@@ -85,7 +89,7 @@ class ProductService(private val repo: ProductRepository) {
         syncScope.launch {
             try {
                 withTimeoutOrNull(5000) {
-                    firebaseRepo.salvarRemoto(produtoFinal)
+                    salvarRemotoSeOnline(produtoFinal)
                 }
             } catch (e: Exception) {
                 Log.e("fire_sync", "Sem internet. Produto ficou salvo localmente: ${e.message}")
@@ -101,7 +105,7 @@ class ProductService(private val repo: ProductRepository) {
         repo.remover(id)
 
         // 🚀 REMOVE NO FIREBASE
-        firebaseRepo.remover(id)
+        removerRemotoSeOnline(id)
 
         carregar()
     }
@@ -115,7 +119,7 @@ class ProductService(private val repo: ProductRepository) {
         )
 
         repo.salvar(atualizado)
-        firebaseRepo.salvarRemoto(atualizado) // 🚀 Sincroniza
+        salvarRemotoSeOnline(atualizado) // 🚀 Sincroniza
         carregar()
     }
 
@@ -142,7 +146,7 @@ class ProductService(private val repo: ProductRepository) {
         }
 
         repo.salvar(atualizado)
-        firebaseRepo.salvarRemoto(atualizado) // 🚀 Sincroniza
+        salvarRemotoSeOnline(atualizado) // 🚀 Sincroniza
         carregar()
     }
 
@@ -154,7 +158,7 @@ class ProductService(private val repo: ProductRepository) {
             historico = (produto.historico + itemHistorico).toMutableList()
         )
         repo.salvar(atualizado)
-        firebaseRepo.salvarRemoto(atualizado) // 🚀 Sincroniza
+        salvarRemotoSeOnline(atualizado) // 🚀 Sincroniza
         carregar()
     }
 
@@ -165,7 +169,7 @@ class ProductService(private val repo: ProductRepository) {
             historico = (produto.historico + historico).toMutableList()
         )
         repo.salvar(atualizado)
-        firebaseRepo.salvarRemoto(atualizado) // 🚀 Sincroniza
+        salvarRemotoSeOnline(atualizado) // 🚀 Sincroniza
         carregar()
     }
 
@@ -225,7 +229,7 @@ class ProductService(private val repo: ProductRepository) {
 
         // 💾 SALVAMENTO DUPLO (LOCAL + FIREBASE)
         repo.salvar(produto)
-        firebaseRepo.salvarRemoto(produto)
+        salvarRemotoSeOnline(produto)
 
         // 🔴 Atualiza a lista na tela
         _produtos.value = _produtos.value.map {
@@ -261,6 +265,11 @@ class ProductService(private val repo: ProductRepository) {
     // SINCRONIZAR TUDO (LOCAL -> FIREBASE)
     // ==========================================
     suspend fun sincronizarTudoComFirebase() {
+        if (!firebaseEnabled) {
+            Log.d("fire_sync", "Modo offline: sincronizacao com Firebase ignorada.")
+            return
+        }
+
         try {
             // 1. Pega todos os produtos que estão no celular
             val listaLocal = repo.carregar()
@@ -274,7 +283,7 @@ class ProductService(private val repo: ProductRepository) {
 
             // 2. Envia a lista completa para o Repository do Firebase
             // O método salvarTodosRemoto já percorre a lista e salva um por um
-            firebaseRepo.salvarTodosRemoto(listaLocal)
+            salvarTodosRemotoSeOnline(listaLocal)
 
             Log.d("fire_sync", "✅ Sincronização concluída com sucesso!")
         } catch (e: Exception) {
@@ -288,7 +297,7 @@ class ProductService(private val repo: ProductRepository) {
             historico = (produto.historico + historico).toMutableList()
         )
         repo.salvar(atualizado)
-        firebaseRepo.salvarRemoto(atualizado) // 🚀 Sincroniza
+        salvarRemotoSeOnline(atualizado) // 🚀 Sincroniza
         carregar()
     }
 
@@ -299,13 +308,25 @@ class ProductService(private val repo: ProductRepository) {
             historico = (produto.historico + historico).toMutableList()
         )
         repo.salvar(atualizado)
-        firebaseRepo.salvarRemoto(atualizado) // 🚀 Sincroniza
+        salvarRemotoSeOnline(atualizado) // 🚀 Sincroniza
         carregar()
     }
 
     // =========================
     // UTILITÁRIOS
     // =========================
+    private suspend fun salvarRemotoSeOnline(produto: Produto) {
+        if (firebaseEnabled) firebaseRepo.salvarRemoto(produto)
+    }
+
+    private suspend fun salvarTodosRemotoSeOnline(produtos: List<Produto>) {
+        if (firebaseEnabled) firebaseRepo.salvarTodosRemoto(produtos)
+    }
+
+    private suspend fun removerRemotoSeOnline(id: String) {
+        if (firebaseEnabled) firebaseRepo.remover(id)
+    }
+
     private suspend fun existeDuplicidade(novo: Produto): Boolean {
         val validade = novo.validadeAtual ?: return false
         val existentes = repo.carregar()

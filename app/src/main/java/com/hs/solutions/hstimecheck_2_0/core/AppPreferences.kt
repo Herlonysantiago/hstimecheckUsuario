@@ -3,6 +3,7 @@ package com.hs.solutions.hstimecheck_2_0.core
 import android.content.Context
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
+import com.hs.solutions.hstimecheck_2_0.auth.AuthSession
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
@@ -19,10 +20,19 @@ object AppPreferences {
     val VALIDADE_OBRIGATORIA = booleanPreferencesKey("validade_obrigatoria")
     val BLOQUEAR_SEM_APROVACAO = booleanPreferencesKey("bloquear_sem_aprovacao")
 
+    private fun userKey(context: Context, key: Preferences.Key<Boolean>): Preferences.Key<Boolean> {
+        val userId = try {
+            AuthSession.safeDataOwnerId(context)
+        } catch (_: Exception) {
+            "anonimo"
+        }
+        return booleanPreferencesKey("${userId}_${key.name}")
+    }
+
     // SALVAR
     suspend fun save(context: Context, key: Preferences.Key<Boolean>, value: Boolean) {
         context.dataStore.edit { prefs ->
-            prefs[key] = value
+            prefs[userKey(context, key)] = value
         }
     }
     suspend fun readOnce(
@@ -36,7 +46,7 @@ object AppPreferences {
     // LER
     fun read(context: Context, key: Preferences.Key<Boolean>, default: Boolean): Flow<Boolean> {
         return context.dataStore.data.map { prefs ->
-            prefs[key] ?: default
+            prefs[userKey(context, key)] ?: default
         }
     }
 }

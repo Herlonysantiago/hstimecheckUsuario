@@ -43,6 +43,7 @@
         <activity android:name="com.hs.solutions.hstimecheck_2_0.ui.TelaPrincipalActivity" />
         <activity android:name="com.hs.solutions.hstimecheck_2_0.cadastro.CadastroProdutoActivity" />
         <activity android:name="com.hs.solutions.hstimecheck_2_0.configuracoes.ConfiguracoesSistemaActivity"/>
+        <activity android:name="com.hs.solutions.hstimecheck_2_0.sincronizacao.SyncStatusActivity"/>
         <activity android:name="com.hs.solutions.hstimecheck_2_0.historico.HistoricoGeralActivity"/>
         <activity android:name="com.hs.solutions.hstimecheck_2_0.vencendo.ProdutosVencendoActivity"/>
         <activity android:name="com.hs.solutions.hstimecheck_2_0.sobre.SobreActivity"/>

@@ -33,7 +33,7 @@ class SplashActivity : ComponentActivity() {
         splashScope.launch {
             delay(1200)
 
-            if (AuthSession.isSignedIn()) {
+            if (AuthSession.hasActiveSession(applicationContext)) {
                 AppContainer.init(applicationContext)
                 agendarAlertas(applicationContext)
                 startActivity(Intent(this@SplashActivity, TelaPrincipalActivity::class.java))

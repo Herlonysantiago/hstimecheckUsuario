@@ -5,15 +5,17 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.Switch
 import androidx.appcompat.app.AppCompatActivity
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
+import androidx.credentials.exceptions.ClearCredentialException
 import androidx.lifecycle.lifecycleScope
 import androidx.work.WorkManager
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.hs.solutions.hstimecheck_2_0.R
 import com.hs.solutions.hstimecheck_2_0.auth.AuthSession
 import com.hs.solutions.hstimecheck_2_0.auth.SignInActivity
 import com.hs.solutions.hstimecheck_2_0.core.AppContainer
 import com.hs.solutions.hstimecheck_2_0.core.AppPreferences
+import com.hs.solutions.hstimecheck_2_0.sincronizacao.SyncStatusActivity
 import kotlinx.coroutines.launch
 
 class ConfiguracoesSistemaActivity : AppCompatActivity() {
@@ -51,6 +53,11 @@ class ConfiguracoesSistemaActivity : AppCompatActivity() {
         btnLimparCache = findViewById(R.id.btnLimparCache)
         btnRestaurar = findViewById(R.id.btnRestaurar)
         btnSairConta = findViewById(R.id.btnSairConta)
+        btnSairConta.text = if (AuthSession.isOfflineMode(this)) {
+            "Sair do modo offline"
+        } else {
+            "Sair da conta Google"
+        }
     }
 
     private fun carregarConfiguracoes() {
@@ -111,15 +118,30 @@ class ConfiguracoesSistemaActivity : AppCompatActivity() {
             salvar(AppPreferences.BLOQUEAR_SEM_APROVACAO, v)
         }
 
+        btnSincronizar.setOnClickListener {
+            startActivity(Intent(this, SyncStatusActivity::class.java))
+        }
+
         btnSairConta.setOnClickListener {
-            GoogleSignIn.getClient(this, GoogleSignInOptions.DEFAULT_SIGN_IN).signOut()
-            WorkManager.getInstance(this).cancelUniqueWork("alertas_produtos")
-            AuthSession.signOut()
-            AppContainer.reset()
-            val intent = Intent(this, SignInActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            lifecycleScope.launch {
+                try {
+                    val credentialManager = CredentialManager.create(this@ConfiguracoesSistemaActivity)
+                    credentialManager.clearCredentialState(ClearCredentialStateRequest())
+                } catch (_: ClearCredentialException) {
+                    // Firebase sign-out below still clears the app session.
+                } catch (_: Exception) {
+                    // Some devices can fail credential cleanup; continue logout.
+                }
+
+                WorkManager.getInstance(this@ConfiguracoesSistemaActivity)
+                    .cancelUniqueWork("alertas_produtos")
+                AuthSession.clearSession(this@ConfiguracoesSistemaActivity)
+                AppContainer.reset()
+                val intent = Intent(this@ConfiguracoesSistemaActivity, SignInActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                }
+                startActivity(intent)
             }
-            startActivity(intent)
         }
     }
 

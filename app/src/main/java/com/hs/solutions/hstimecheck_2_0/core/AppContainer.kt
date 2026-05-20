@@ -17,11 +17,14 @@ object AppContainer {
     var lancamentoContinuo: Boolean = false
 
     fun init(context: Context) {
-        val userId = AuthSession.requireUserId()
+        val userId = AuthSession.dataOwnerId(context)
         if (initialized && initializedUserId == userId) return
 
         val jsonRepo = ProductRepositoryJson(context, userId)
-        productService = ProductService(jsonRepo)
+        productService = ProductService(
+            repo = jsonRepo,
+            firebaseEnabled = AuthSession.isSignedIn()
+        )
         FotoRepository.carregar(context)
 
         initialized = true

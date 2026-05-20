@@ -1,20 +1,35 @@
 package com.hs.solutions.hstimecheck_2_0.core
 
 import android.content.Context
+import com.hs.solutions.hstimecheck_2_0.auth.AuthSession
 import org.json.JSONObject
 import java.io.File
 
 object FotoRepository {
 
-    private const val FILE_NAME = "fotos.json"
     private val mapa = mutableMapOf<String, String>()
     private var carregado = false
+    private var usuarioAtual: String? = null
+
+    private fun safeUserId(context: Context): String =
+        try {
+            AuthSession.safeDataOwnerId(context)
+        } catch (_: Exception) {
+            "anonimo"
+        }
 
     private fun getFile(context: Context): File =
-        File(context.filesDir, FILE_NAME)
+        File(context.filesDir, "fotos_${safeUserId(context)}.json")
 
     // 🔹 Carrega do disco (uma vez)
     fun carregar(context: Context) {
+        val userId = safeUserId(context)
+        if (usuarioAtual != userId) {
+            mapa.clear()
+            carregado = false
+            usuarioAtual = userId
+        }
+
         if (carregado) return
         val file = getFile(context)
         if (!file.exists()) {

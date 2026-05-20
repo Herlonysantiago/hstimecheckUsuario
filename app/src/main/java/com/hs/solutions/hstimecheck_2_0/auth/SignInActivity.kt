@@ -5,7 +5,10 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -30,8 +34,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.Companion.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.hs.solutions.hstimecheck_2_0.R
@@ -46,30 +52,10 @@ class SignInActivity : ComponentActivity() {
 
     private val firebaseAuth = FirebaseAuth.getInstance()
 
-    private val googleLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        lifecycleScope.launch {
-            try {
-                val account = task.await()
-                val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-                firebaseAuth.signInWithCredential(credential).await()
-                abrirApp()
-            } catch (e: Exception) {
-                Toast.makeText(
-                    this@SignInActivity,
-                    "Nao foi possivel entrar com Google: ${e.message}",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (AuthSession.isSignedIn()) {
+        if (AuthSession.hasActiveSession(applicationContext)) {
             abrirApp()
             return
         }
@@ -77,7 +63,8 @@ class SignInActivity : ComponentActivity() {
         setContent {
             HsTimeCheckTheme {
                 SignInScreen(
-                    onGoogleClick = { iniciarLoginGoogle() }
+                    onGoogleClick = { iniciarLoginGoogle() },
+                    onOfflineClick = { iniciarModoOffline() }
                 )
             }
         }
@@ -94,13 +81,66 @@ class SignInActivity : ComponentActivity() {
             return
         }
 
-        val options = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(webClientId)
-            .requestEmail()
+        lifecycleScope.launch {
+            try {
+                autenticarComCredentialManager(webClientId, filtrarContasAutorizadas = true)
+            } catch (_: NoCredentialException) {
+                autenticarComCredentialManager(webClientId, filtrarContasAutorizadas = false)
+            } catch (e: Exception) {
+                Toast.makeText(
+                    this@SignInActivity,
+                    "Nao foi possivel entrar com Google: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    private suspend fun autenticarComCredentialManager(
+        webClientId: String,
+        filtrarContasAutorizadas: Boolean
+    ) {
+        val googleIdOption = GetGoogleIdOption.Builder()
+            .setServerClientId(webClientId)
+            .setFilterByAuthorizedAccounts(filtrarContasAutorizadas)
             .build()
 
-        val client = GoogleSignIn.getClient(this, options)
-        googleLauncher.launch(client.signInIntent)
+        val request = GetCredentialRequest.Builder()
+            .addCredentialOption(googleIdOption)
+            .build()
+
+        val result = CredentialManager.create(this).getCredential(
+            context = this,
+            request = request
+        )
+
+        val credential = result.credential
+        if (credential !is CustomCredential ||
+            credential.type != TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+        ) {
+            throw IllegalStateException("Credencial Google invalida.")
+        }
+
+        val googleCredential = try {
+            GoogleIdTokenCredential.createFrom(credential.data)
+        } catch (e: GoogleIdTokenParsingException) {
+            throw IllegalStateException("Token Google invalido.", e)
+        }
+
+        val firebaseCredential = GoogleAuthProvider.getCredential(
+            googleCredential.idToken,
+            null
+        )
+        firebaseAuth.signInWithCredential(firebaseCredential).await()
+        AuthSession.disableOfflineMode(applicationContext)
+        AppContainer.reset()
+        abrirApp()
+    }
+
+    private fun iniciarModoOffline() {
+        AuthSession.enableOfflineMode(applicationContext)
+        AppContainer.reset()
+        abrirApp()
     }
 
     private fun getWebClientId(): String {
@@ -120,7 +160,10 @@ class SignInActivity : ComponentActivity() {
 }
 
 @Composable
-private fun SignInScreen(onGoogleClick: () -> Unit) {
+private fun SignInScreen(
+    onGoogleClick: () -> Unit,
+    onOfflineClick: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -148,7 +191,7 @@ private fun SignInScreen(onGoogleClick: () -> Unit) {
         Spacer(modifier = Modifier.height(10.dp))
 
         Text(
-            text = "Entre com sua conta Google para carregar uma base separada e segura.",
+            text = "Entre com Google para sincronizar ou use somente no celular em modo offline.",
             style = MaterialTheme.typography.bodyMedium,
             color = Color(0xFF44515C),
             textAlign = TextAlign.Center
@@ -164,6 +207,17 @@ private fun SignInScreen(onGoogleClick: () -> Unit) {
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5))
         ) {
             Text("Entrar com Google")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = onOfflineClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+        ) {
+            Text("Usar sem conta (offline)")
         }
     }
 }

@@ -2,7 +2,10 @@ package com.hs.solutions.hstimecheck_2_0.ui
 
 // ================= ANDROID =================
 import android.app.Activity
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import java.io.File
 import android.content.Context
@@ -10,7 +13,7 @@ import android.os.Handler
 import android.os.Looper
 import kotlinx.coroutines.launch
 import android.widget.Toast
-import com.hs.solutions.hstimecheck_2_0.core. *
+import com.hs.solutions.hstimecheck_2_0.core.*
 import com.hs.solutions.hstimecheck_2_0.core.DateFormatter
 
 // ================= COMPOSE =================
@@ -39,7 +42,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.rememberCoroutineScope
 
-
 // ================= COIL =================
 import coil.compose.AsyncImage
 
@@ -55,7 +57,8 @@ import com.hs.solutions.hstimecheck_2_0.models.Produto
 import com.hs.solutions.hstimecheck_2_0.models.StatusProduto
 import com.hs.solutions.hstimecheck_2_0.historico.HistoricoGeralActivity
 import com.hs.solutions.hstimecheck_2_0.ui.FullImageActivity
-// ================= CORROTINAS =================
+
+import com.hs.solutions.hstimecheck_2_0.auth.AuthSession// ================= CORROTINAS =================
 import java.text.SimpleDateFormat
 import java.util.*
 import android.net.Uri
@@ -68,18 +71,18 @@ import com.hs.solutions.hstimecheck_2_0.ui.verificacaoqualidade.VerificacaoQuali
 import com.hs.solutions.hstimecheck_2_0.vencendo.ProdutosVencendoActivity
 import com.hs.solutions.hstimecheck_2_0.utils.enviarProdutos
 import com.hs.solutions.hstimecheck_2_0.venda.VendaProdutoActivity
-import com.hs.solutions.hstimecheck_2_0.importacao. *
-import androidx.activity.result.ActivityResultLauncher
 import com.hs.solutions.hstimecheck_2_0.importacao.*
-// =======================================================
-// ACTIVITY PRINCIPAL (ÚNICO onCreate — CORRETO)
-// =======================================================
+import androidx.activity.result.ActivityResultLauncher
+import androidx.core.content.ContextCompat
 
-// ... (mantenha seus imports)
+// =======================================================
+// ACTIVITY PRINCIPAL
+// =======================================================
 
 class TelaPrincipalActivity : ComponentActivity() {
 
     private lateinit var previewLauncher: ActivityResultLauncher<Intent>
+    private lateinit var notificationPermissionLauncher: ActivityResultLauncher<String>
 
     // Launcher para abrir o seletor de arquivos
     private val selecionarArquivoLauncher =
@@ -93,16 +96,21 @@ class TelaPrincipalActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         AppContainer.init(this)
 
-        previewLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                Toast.makeText(this, "Importação confirmada", Toast.LENGTH_SHORT).show()
+        notificationPermissionLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+
+        previewLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode == Activity.RESULT_OK) {
+                    Toast.makeText(this, "Importação confirmada", Toast.LENGTH_SHORT).show()
+                }
             }
-        }
+
+        solicitarPermissaoNotificacao()
 
         setContent {
             MaterialTheme {
                 AplicarConfiguracoesGlobais()
-                // Passamos o launcher de documentos para a Composable
                 TelaPrincipal(AppContainer.productService, selecionarArquivoLauncher)
             }
         }
@@ -113,6 +121,17 @@ class TelaPrincipalActivity : ComponentActivity() {
         previewLauncher.launch(intent)
     }
 
+    private fun solicitarPermissaoNotificacao() {
+        if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     private fun iniciarImportacao(uri: Uri) {
         val importId = "IMP_" + System.currentTimeMillis()
@@ -127,38 +146,37 @@ class TelaPrincipalActivity : ComponentActivity() {
         ImportacaoHolder.resultado = resultado
         abrirPreview()
     }
-
-
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TelaPrincipal(
     service: ProductService,
-    selecionarArquivoLauncher: ActivityResultLauncher<Array<String>> // Corrigido aqui
-) { // Abertura de chaves adicionada
-
+    selecionarArquivoLauncher: ActivityResultLauncher<Array<String>>
+) {
     // ---------------- STATE ----------------
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    val launcherVenda = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            scope.launch { service.carregar() }
+    val launcherVenda =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                scope.launch { service.carregar() }
+            }
         }
-    }
 
     var query by remember { mutableStateOf("") }
     val produtos by service.produtos.collectAsState()
     var selectionMode by remember { mutableStateOf(false) }
     val selectedIds = remember { mutableStateListOf<String>() }
 
-    val launcherCadastro = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            scope.launch { service.carregar() }
+    val launcherCadastro =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                scope.launch { service.carregar() }
+            }
         }
-    }
 
     LaunchedEffect(Unit) {
         service.carregar()
@@ -171,7 +189,7 @@ fun TelaPrincipal(
         if (queryNormalizada.isBlank()) return@filter true
 
         val descricao = produto.descricao.lowercase()
-        val codigoBarras = produto.codigoBarras?.lowercase() ?: ""
+        val codigoBarras = produto.codigoBarras.lowercase()
         val codigoInterno = produto.codigoInterno?.lowercase() ?: ""
 
         descricao.contains(queryNormalizada) ||
@@ -186,6 +204,7 @@ fun TelaPrincipal(
     val chavesOrdenadas = grupos.keys.sorted()
     var mostrarConfirmacaoExcluirVencidos by remember { mutableStateOf(false) }
     var mostrarConfirmacaoExcluir by remember { mutableStateOf(false) }
+
     // ---------------- DRAWER ----------------
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -234,6 +253,7 @@ fun TelaPrincipal(
                             Toast.makeText(context, "Nenhum produto para exportar", Toast.LENGTH_SHORT).show()
                             return@launch
                         }
+
                         val file = exportarProdutosCsv(context, listaProdutos)
                         compartilharCsv(context, file)
                     }
@@ -243,9 +263,10 @@ fun TelaPrincipal(
                 },
                 onbuckp = {
                     scope.launch {
-                        Toast.makeText(context, "Sincronizando com a nuvem...", Toast.LENGTH_SHORT)
-                            .show()
-                        service.sincronizarTudoComFirebase() // A função que criamos no Service
+                        Toast.makeText(context, "Sincronizando com a nuvem...", Toast.LENGTH_SHORT).show()
+
+                        service.sincronizarTudoComFirebase()
+
                         Toast.makeText(
                             context,
                             "Backup concluído!",
@@ -256,11 +277,10 @@ fun TelaPrincipal(
             )
         }
     ) {
-        // ---------------- SCAFFOLD ---------------
+        // ---------------- SCAFFOLD ----------------
         Scaffold(
             topBar = {
                 if (selectionMode) {
-
                     TopAppBar(
                         title = { Text("${selectedIds.size} Selec.") },
 
@@ -276,7 +296,6 @@ fun TelaPrincipal(
                         },
 
                         actions = {
-
                             IconButton(
                                 onClick = { mostrarConfirmacaoExcluir = true }
                             ) {
@@ -288,15 +307,22 @@ fun TelaPrincipal(
                                     scope.launch {
                                         selectedIds.forEach { id ->
                                             produtos.find { it.id == id }?.let {
-                                                service.mudarStatus(it, StatusProduto.AGUARDANDO_APROVACAO)
+                                                service.mudarStatus(
+                                                    it,
+                                                    StatusProduto.AGUARDANDO_APROVACAO
+                                                )
                                             }
                                         }
+
                                         selectionMode = false
                                         selectedIds.clear()
                                     }
                                 }
                             ) {
-                                Icon(Icons.Default.ThumbUp, contentDescription = "Enviar para aprovação")
+                                Icon(
+                                    Icons.Default.ThumbUp,
+                                    contentDescription = "Enviar para aprovação"
+                                )
                             }
 
                             IconButton(
@@ -304,22 +330,34 @@ fun TelaPrincipal(
                                     scope.launch {
                                         selectedIds.forEach { id ->
                                             produtos.find { it.id == id }?.let {
-                                                service.mudarStatus(it, StatusProduto.TRABALHANDO_PRECO)
+                                                service.mudarStatus(
+                                                    it,
+                                                    StatusProduto.TRABALHANDO_PRECO
+                                                )
                                             }
                                         }
+
                                         selectionMode = false
                                         selectedIds.clear()
                                     }
                                 }
                             ) {
-                                Icon(Icons.Default.LocalFireDepartment, contentDescription = "Trabalhar preço")
+                                Icon(
+                                    Icons.Default.LocalFireDepartment,
+                                    contentDescription = "Trabalhar preço"
+                                )
                             }
 
                             IconButton(
                                 onClick = {
                                     scope.launch {
-                                        val produto = produtos.firstOrNull { it.id in selectedIds } ?: return@launch
-                                        service.mudarStatus(produto, StatusProduto.VERIFICACAO_ESTOQUE)
+                                        val produto = produtos.firstOrNull { it.id in selectedIds }
+                                            ?: return@launch
+
+                                        service.mudarStatus(
+                                            produto,
+                                            StatusProduto.VERIFICACAO_ESTOQUE
+                                        )
 
                                         selectionMode = false
                                         selectedIds.clear()
@@ -331,7 +369,10 @@ fun TelaPrincipal(
                                     }
                                 }
                             ) {
-                                Icon(Icons.Default.Inventory, contentDescription = "Verificar estoque")
+                                Icon(
+                                    Icons.Default.Inventory,
+                                    contentDescription = "Verificar estoque"
+                                )
                             }
 
                             IconButton(
@@ -347,11 +388,23 @@ fun TelaPrincipal(
                             }
                         }
                     )
-
                 } else {
-
                     TopAppBar(
-                        title = { Text("HS TimeCheck") },
+                        title = {
+                            val user = AuthSession.currentUser
+
+                            Column {
+                                Text("HS TimeCheck")
+
+                                Text(
+                                    text = user?.displayName
+                                        ?: user?.email
+                                        ?: "Modo offline/local",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    maxLines = 1
+                                )
+                            }
+                        },
 
                         navigationIcon = {
                             IconButton(
@@ -362,7 +415,6 @@ fun TelaPrincipal(
                         },
 
                         actions = {
-
                             IconButton(
                                 onClick = {
                                     mostrarConfirmacaoExcluirVencidos = true
@@ -373,16 +425,18 @@ fun TelaPrincipal(
                                     contentDescription = "Excluir vencidos"
                                 )
                             }
-
                         }
                     )
                 }
             },
+
             floatingActionButton = {
                 if (!selectionMode) {
                     FloatingActionButton(
                         onClick = {
-                            launcherCadastro.launch(Intent(context, CadastroProdutoActivity::class.java))
+                            launcherCadastro.launch(
+                                Intent(context, CadastroProdutoActivity::class.java)
+                            )
                         }
                     ) {
                         Icon(Icons.Default.Add, contentDescription = "Adicionar")
@@ -395,10 +449,14 @@ fun TelaPrincipal(
                     .padding(padding)
                     .fillMaxSize()
             ) {
+                StatusProdutosCard(service = service)
+
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     singleLine = true,
                     placeholder = { Text("Buscar produto...") }
@@ -407,6 +465,7 @@ fun TelaPrincipal(
                 LazyColumn {
                     chavesOrdenadas.forEach { chave ->
                         val grupo = grupos[chave] ?: emptyList()
+
                         val label = when {
                             chave == Int.MAX_VALUE -> "Sem validade"
                             chave < 0 -> "Vencido"
@@ -419,6 +478,7 @@ fun TelaPrincipal(
 
                         items(items = grupo, key = { it.id }) { produto ->
                             val isSelected = produto.id in selectedIds
+
                             ProdutoItem(
                                 produto = produto,
                                 isSelected = isSelected,
@@ -426,6 +486,7 @@ fun TelaPrincipal(
                                     if (selectionMode) {
                                         if (isSelected) selectedIds.remove(produto.id)
                                         else selectedIds.add(produto.id)
+
                                         if (selectedIds.isEmpty()) selectionMode = false
                                     } else {
                                         context.startActivity(
@@ -439,17 +500,25 @@ fun TelaPrincipal(
                                         selectionMode = true
                                         selectedIds.clear()
                                     }
+
                                     selectedIds.add(produto.id)
                                 },
                                 onDoubleClick = {
-                                    produto.validades.forEach { if (it.quantidade == null) it.quantidade = 0 }
+                                    produto.validades.forEach {
+                                        if (it.quantidade == null) it.quantidade = 0
+                                    }
+
                                     val validadeSelecionada = produto.validades
                                         .filter { (it.quantidade ?: 0) > 0 }
                                         .minByOrNull { it.validade }
                                         ?.validade
 
                                     if (validadeSelecionada == null) {
-                                        Toast.makeText(context, "Produto sem estoque disponível", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            "Produto sem estoque disponível",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                         return@ProdutoItem
                                     }
 
@@ -467,117 +536,79 @@ fun TelaPrincipal(
             }
         }
     }
-    if (mostrarConfirmacaoExcluir) {
+}
 
-        AlertDialog(
-            onDismissRequest = { mostrarConfirmacaoExcluir = false },
+// =======================================================
+// CARD DE STATUS / PRODUTOS ON E OFF
+// =======================================================
+@Composable
+fun StatusProdutosCard(service: ProductService) {
+    val produtos by service.produtos.collectAsState()
 
-            title = {
-                Text("Excluir produtos")
-            },
-
-            text = {
-                Text("Deseja excluir ${selectedIds.size} produto(s)?")
-            },
-
-            confirmButton = {
-                TextButton(
-                    onClick = {
-
-                        scope.launch {
-
-                            selectedIds.forEach { id ->
-                                service.remover(id)
-                            }
-
-                            selectedIds.clear()
-                            selectionMode = false
-                            mostrarConfirmacaoExcluir = false
-
-                            service.carregar()
-
-                            Toast.makeText(
-                                context,
-                                "Produtos excluídos",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
-                ) {
-                    Text("Excluir")
-                }
-            },
-
-            dismissButton = {
-                TextButton(
-                    onClick = { mostrarConfirmacaoExcluir = false }
-                ) {
-                    Text("Cancelar")
-                }
-            }
-        )
+    val statusTexto = if (service.firebaseEnabled) {
+        "Online"
+    } else {
+        "Offline"
     }
 
-    if (mostrarConfirmacaoExcluirVencidos) {
+    val totalProdutos = produtos.size
+    val produtosOn = if (service.firebaseEnabled) totalProdutos else 0
+    val produtosOff = totalProdutos
 
-        AlertDialog(
-            onDismissRequest = {
-                mostrarConfirmacaoExcluirVencidos = false
-            },
-
-            title = {
-                Text("Excluir vencidos")
-            },
-
-            text = {
-                Text("Deseja excluir todos os produtos vencidos?")
-            },
-
-            confirmButton = {
-                TextButton(
-                    onClick = {
-
-                        scope.launch {
-
-                            val vencidos = service.produtos.value.filter {
-                                getDiasRestantes(it.validadeAtual) < 0
-                            }
-
-                            vencidos.forEach {
-                                service.remover(it.id)
-                            }
-
-                            service.carregar()
-
-                            Toast.makeText(
-                                context,
-                                "${vencidos.size} produtos vencidos excluídos",
-                                Toast.LENGTH_SHORT
-                            ).show()
-
-                            mostrarConfirmacaoExcluirVencidos = false
-                        }
-                    }
-                ) {
-                    Text("Excluir")
-                }
-            },
-
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        mostrarConfirmacaoExcluirVencidos = false
-                    }
-                ) {
-                    Text("Cancelar")
-                }
-            }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
         )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = if (service.firebaseEnabled) {
+                    Icons.Default.CloudDone
+                } else {
+                    Icons.Default.CloudOff
+                },
+                contentDescription = null,
+                modifier = Modifier.size(42.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(Modifier.width(10.dp))
+
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = "Status: $statusTexto",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+
+                Text(
+                    text = "Produtos ON: $produtosOn",
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1
+                )
+
+                Text(
+                    text = "Produtos OFF: $produtosOff",
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1
+                )
+            }
+        }
     }
 }
 
 // =======================================================
-// ITEM DO PRODUTO (CORRIGIDO)
+// ITEM DO PRODUTO
 // =======================================================
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -605,19 +636,31 @@ fun ProdutoItem(
             .fillMaxWidth()
             .padding(horizontal = 6.dp, vertical = 3.dp)
             .combinedClickable(
-                onClick = { if (!bloqueado) onClick() },
-                onLongClick = { if (!bloqueado) onLongPress() },
+                onClick = {
+                    if (!bloqueado) onClick()
+                },
+                onLongClick = {
+                    if (!bloqueado) onLongPress()
+                },
                 onDoubleClick = {
                     if (bloqueado) return@combinedClickable
+
                     bloqueado = true
                     onDoubleClick()
-                    Handler(Looper.getMainLooper()).postDelayed({ bloqueado = false }, 600)
+
+                    Handler(Looper.getMainLooper()).postDelayed(
+                        { bloqueado = false },
+                        600
+                    )
                 }
             ),
-        colors = if (isSelected)
-            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-        else
+        colors = if (isSelected) {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+            )
+        } else {
             CardDefaults.cardColors(containerColor = corFundo)
+        }
     ) {
         Row(
             modifier = Modifier
@@ -625,12 +668,16 @@ fun ProdutoItem(
                 .padding(horizontal = 6.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 📸 FOTO
+            // FOTO
             Box(
                 modifier = Modifier
                     .size(42.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .border(width = 1.dp, color = Color(0x22000000), shape = RoundedCornerShape(8.dp))
+                    .border(
+                        width = 1.dp,
+                        color = Color(0x22000000),
+                        shape = RoundedCornerShape(8.dp)
+                    )
                     .clickable {
                         if (!produto.fotoUrl.isNullOrBlank()) {
                             context.startActivity(
@@ -666,8 +713,16 @@ fun ProdutoItem(
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1
                 )
-                Text("CB: ${produto.codigoBarras}", style = MaterialTheme.typography.bodySmall)
-                Text("CI: ${produto.codigoInterno ?: "—"}", style = MaterialTheme.typography.bodySmall)
+
+                Text(
+                    "CB: ${produto.codigoBarras}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Text(
+                    "CI: ${produto.codigoInterno ?: "—"}",
+                    style = MaterialTheme.typography.bodySmall
+                )
 
                 val total = produto.quantidadeAtual ?: 0
                 val qpc = produto.quantidadePorCaixa
@@ -676,42 +731,59 @@ fun ProdutoItem(
                     qpc == 1000 -> {
                         val kg = total / 1000
                         val gr = total % 1000
-                        if (gr > 0) "$kg kg • $gr g" else "$kg kg"
+
+                        if (gr > 0) {
+                            "$kg kg • $gr g"
+                        } else {
+                            "$kg kg"
+                        }
                     }
+
                     qpc == -1 -> "$total cx"
+
                     qpc != null && qpc > 0 -> {
                         val cx = total / qpc
                         val un = total % qpc
-                        if (un > 0) "$cx cx • $un un" else "$cx cx"
+
+                        if (un > 0) {
+                            "$cx cx • $un un"
+                        } else {
+                            "$cx cx"
+                        }
                     }
+
                     else -> "$total un"
                 }
-                Text(estoqueTexto, style = MaterialTheme.typography.bodySmall)
+
+                Text(
+                    estoqueTexto,
+                    style = MaterialTheme.typography.bodySmall
+                )
+
                 Text(
                     "Validade: ${DateFormatter.isoParaBr(produto.validadeAtual)}",
                     style = MaterialTheme.typography.bodySmall
                 )
 
-                // CORREÇÃO DO FINAL DO ARQUIVO
                 if (produto.status != StatusProduto.NORMAL) {
                     Text(
-                        text = if (produto.status == StatusProduto.TRABALHANDO_PRECO) "Trabalhando Preço" else "Aguardando Aprovação",
+                        text = if (produto.status == StatusProduto.TRABALHANDO_PRECO) {
+                            "Trabalhando Preço"
+                        } else {
+                            "Aguardando Aprovação"
+                        },
                         color = Color.Red,
-                        style = MaterialTheme.typography.bodySmall, // Adicionado bodySmall
+                        style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
     }
-
 }
 
-
-
-
 // =======================================================
-// FUNÇÕES AUXILIARES (SUAS)
+// FUNÇÕES AUXILIARES
 // =======================================================
 fun getDiasRestantes(validade: String?): Int {
     if (validade.isNullOrBlank()) return Int.MAX_VALUE
@@ -738,7 +810,6 @@ fun getDiasRestantes(validade: String?): Int {
 
         val diffMillis = validadeCal.timeInMillis - hojeCal.timeInMillis
         (diffMillis / (1000 * 60 * 60 * 24)).toInt()
-
     } catch (_: Exception) {
         Int.MAX_VALUE
     }
@@ -753,23 +824,24 @@ fun SectionHeader(text: String) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Divider(Modifier.weight(1f))
+
         Text(
             "  $text  ",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold
         )
+
         Divider(Modifier.weight(1f))
     }
 }
 
 // =======================================================
-// DRAWER MENU (SEU, INTEIRO)
+// DRAWER MENU
 // =======================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrawerMenu(
     onDashboard: () -> Unit = {},
-    onProdutos: () -> Unit = {},
     onValidadesProduto: () -> Unit = {},
     onImportacao: () -> Unit = {},
     onExportacao: () -> Unit = {},
@@ -782,14 +854,16 @@ fun DrawerMenu(
     onConfiguracoes: () -> Unit = {},
     onSobre: () -> Unit = {},
     onCreditos: () -> Unit = {},
-    onbuckp: () -> Unit ={}
+    onbuckp: () -> Unit = {}
 ) {
     ModalDrawerSheet(
         modifier = Modifier.verticalScroll(rememberScrollState())
     ) {
-
-        Text("Menu", Modifier.padding(16.dp), fontWeight = FontWeight.Bold)
-
+        Text(
+            "Menu",
+            Modifier.padding(16.dp),
+            fontWeight = FontWeight.Bold
+        )
 
         NavigationDrawerItem(
             label = { Text("Dashboard") },
@@ -807,7 +881,6 @@ fun DrawerMenu(
             onClick = onAprovacao
         )
 
-
         NavigationDrawerItem(
             label = { Text("Trabalhando Preço / Queima de Estoque") },
             icon = { Icon(Icons.Default.LocalFireDepartment, null) },
@@ -821,6 +894,7 @@ fun DrawerMenu(
             selected = false,
             onClick = onEstoque
         )
+
         NavigationDrawerItem(
             label = { Text("Validades do Produto") },
             icon = { Icon(Icons.Default.DateRange, null) },
@@ -834,12 +908,14 @@ fun DrawerMenu(
             selected = false,
             onClick = onVencimentos
         )
+
         NavigationDrawerItem(
             label = { Text("Produtos Vencidos") },
             icon = { Icon(Icons.Default.AccessTime, null) },
             selected = false,
             onClick = onVencidos
         )
+
         SectionHeader("DADOS")
 
         NavigationDrawerItem(
@@ -887,6 +963,7 @@ fun DrawerMenu(
             selected = false,
             onClick = onCreditos
         )
+
         NavigationDrawerItem(
             label = { Text("Backup Total (Firebase)") },
             icon = { Icon(Icons.Default.CloudUpload, null) },
@@ -896,6 +973,7 @@ fun DrawerMenu(
 
     }
 }
+
 
 
 @Composable

@@ -14,7 +14,7 @@ class HsTimeCheckApp : Application() {
 
         criarCanaisNotificacao(this)
 
-        if (AuthSession.isSignedIn()) {
+        if (AuthSession.hasActiveSession(this)) {
             AppContainer.init(this)
             testarAlertaAgora(this)
             agendarAlertas(this)
